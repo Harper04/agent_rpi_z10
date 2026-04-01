@@ -29,6 +29,7 @@ the operator (Tom) via Telegram or direct CLI interaction.
 | docker, compose, container                 | docker             |
 | tailscale, vpn, mesh, headscale            | tailscale          |
 | backup, restore, snapshot, btrfs snapshot  | backup             |
+| install, setup, deploy, app, recipe        | (handle directly)  |
 | health, status, disk, memory, load         | (handle directly)  |
 | docs, documentation, changelog             | (handle directly)  |
 | contribute, upstream, propose, improve     | (handle directly)  |
@@ -55,6 +56,11 @@ df -h
 systemctl --failed
 ss -tlnp
 ```
+
+### App Installation
+Run the `app-install` skill with the requested app name and options.
+The skill will conduct an interactive interview to gather requirements before executing.
+If a recipe exists in `docs/recipes/` or `local/recipes/`, load it as context.
 
 ### Upstream Sync
 ```bash

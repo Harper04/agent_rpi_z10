@@ -51,6 +51,43 @@ docker inspect --format='{{.State.Health.Status}}' <container>
 docker logs <container> --tail=30 --since=5m
 ```
 
+## Deploy New Stack (from install skill)
+
+When the `app-install` skill delegates a Docker-based installation:
+
+**Standard directory convention:** `/opt/stacks/<app>/`
+```
+/opt/stacks/<app>/
+├── docker-compose.yml
+├── .env                  ← secrets, not committed to git
+├── data/                 ← persistent app data (bind mount)
+└── config/               ← config files mounted into containers
+```
+
+```bash
+# Create stack directory
+mkdir -p /opt/stacks/<app>/{data,config}
+
+# Write docker-compose.yml (from recipe or generated)
+# Write .env with secrets
+
+# Deploy
+cd /opt/stacks/<app>
+docker compose pull
+docker compose up -d
+docker compose ps
+
+# Verify
+docker compose logs --tail=20
+```
+
+After deployment, update `local/docs/apps/docker/<app>.md` with:
+- Compose file location
+- Image versions pulled
+- Volume mounts and data paths
+- Port mappings
+- Environment variables (names only, not secrets)
+
 ## Safety Rules
 
 - **Always** backup compose files before editing
