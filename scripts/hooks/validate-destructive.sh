@@ -53,9 +53,10 @@ if echo "$COMMAND" | grep -qE "git push upstream "; then
     exit 2
   fi
 
-  # Scan the diff about to be pushed for credential patterns
+  # Scan the diff about to be pushed for actual credential values.
+  # Matches token/key formats, not variable references like ${VARNAME}.
   DIFF=$(git diff "upstream/main...${BRANCH}" 2>/dev/null || true)
-  CRED_PATTERN='(TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID|sk-ant-|ghp_|github_pat_|password\s*=\s*\S|secret\s*=\s*\S|api_key\s*=\s*\S)'
+  CRED_PATTERN='(sk-ant-[A-Za-z0-9_-]{20,}|gh[ps]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[0-9]{8,10}:[A-Za-z0-9_-]{35}|(password|secret|api_key|token)\s*=\s*[^${\s#"'"'"'][^\s]+)'
   HITS=$(echo "$DIFF" | grep -Pn "^\+.*${CRED_PATTERN}" 2>/dev/null || true)
 
   if [ -n "$HITS" ]; then
