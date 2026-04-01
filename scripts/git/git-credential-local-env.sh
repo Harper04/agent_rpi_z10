@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # Find repo root
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/../.." && pwd))"
 ENV_FILE="$REPO_ROOT/local/.env"
 
 # Only respond to "get" requests
