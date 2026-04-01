@@ -9,14 +9,15 @@
 set -euo pipefail
 
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.path // .tool_input.file_path // empty')
+
+# shellcheck source=../lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
+
+FILE_PATH=$(jq -r '.tool_input.path // .tool_input.file_path // empty' <<< "$INPUT")
 
 if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
-
-# Determine repo root
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 # Only back up files outside the repo (system config files)
 case "$FILE_PATH" in
@@ -34,9 +35,9 @@ if [ ! -f "$BACKUP" ]; then
   cp -p "$FILE_PATH" "$BACKUP" 2>/dev/null || true
 fi
 
-# Log the backup
-LOG_DIR="$REPO_ROOT/local/logs"
-mkdir -p "$LOG_DIR"
-echo "$(date -Is) $FILE_PATH -> $BACKUP" >> "$LOG_DIR/config-backups.log"
+# Log the backup (only if we actually created one)
+if [ -f "$BACKUP" ]; then
+  echo "$(date -Is) $FILE_PATH -> $BACKUP" >> "$LOG_DIR/config-backups.log"
+fi
 
 exit 0

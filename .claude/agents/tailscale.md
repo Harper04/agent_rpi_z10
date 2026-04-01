@@ -47,11 +47,11 @@ resolvectl status
 
 - **Never** run `tailscale down` without confirmation (disconnects remote access)
 - **Always** verify connectivity after config changes via a second path
-- Document the Tailscale node name and IP in `docs/system/network.md`
+- Document the Tailscale node name and IP in `local/docs/system/network.md`
 
 ## Documentation
 
-After changes, update `docs/system/network.md` and `docs/apps/tailscale.md`:
+After changes, update `local/docs/system/network.md` and `local/docs/apps/tailscale.md`:
 - Tailscale node name and IP
 - Advertised routes
 - Exit node status

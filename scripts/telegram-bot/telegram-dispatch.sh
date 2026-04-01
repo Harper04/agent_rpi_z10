@@ -3,7 +3,7 @@
 #
 # ⚠️  DEPRECATED as a long-running service.
 #     The active Telegram integration is the MCP plugin (plugin:telegram) running
-#     inside the interactive Claude session (see claude-agent.service / start-agent.sh).
+#     inside the interactive Claude session (see start-agent.sh / run-agent.sh).
 #     Do NOT start this as a systemd service alongside that session — it will cause
 #     duplicate responses and consume the same message updates.
 #

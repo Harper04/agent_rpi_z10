@@ -61,7 +61,7 @@ docker logs <container> --tail=30 --since=5m
 
 ## Documentation
 
-After changes, update `docs/apps/docker.md` with:
+After changes, update `local/docs/apps/docker.md` with:
 - Running stacks and their compose file locations
 - Image versions in use
 - Volume inventory

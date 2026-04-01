@@ -2,8 +2,8 @@
 # cron-runner.sh — Runs a Claude Code command on schedule and logs output.
 #
 # Usage in crontab:
-#   0 3 * * *  /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "system-upgrade --security-only --unattended"
-#   0 6 * * *  /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "health-check"
+#   0 3 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "system-upgrade --security-only --unattended"
+#   0 6 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "health-check"
 
 set -euo pipefail
 

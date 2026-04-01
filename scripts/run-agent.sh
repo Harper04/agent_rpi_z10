@@ -73,8 +73,7 @@ while true; do
     log "${GREEN}[$(stamp)] Starting claude (attempt #${ATTEMPT}, consecutive failures: ${CONSECUTIVE_FAILURES})...${RESET}"
 
     START_TS=$(date +%s)
-    claude --dangerously-skip-permissions >> "$LOG_FILE" 2>&1 || true
-    EXIT_CODE=$?
+    claude --dangerously-skip-permissions >> "$LOG_FILE" 2>&1 && EXIT_CODE=0 || EXIT_CODE=$?
     END_TS=$(date +%s)
     UPTIME=$(( END_TS - START_TS ))
 

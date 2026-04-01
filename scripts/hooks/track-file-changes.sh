@@ -7,25 +7,26 @@
 set -euo pipefail
 
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.path // .tool_input.file_path // empty')
+
+# shellcheck source=../lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
+
+FILE_PATH=$(jq -r '.tool_input.path // .tool_input.file_path // empty' <<< "$INPUT")
 
 if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-TRACKER="$REPO_ROOT/local/logs/changed-files.log"
-
-mkdir -p "$(dirname "$TRACKER")"
+TRACKER="$LOG_DIR/changed-files.log"
 
 # Only track files outside the docs/ directory (those are documentation itself)
 if [[ "$FILE_PATH" != */docs/* ]]; then
   echo "$(date -Is) $FILE_PATH" >> "$TRACKER"
 fi
 
-# Deduplicate and keep last 100 entries
-if [ -f "$TRACKER" ] && [ "$(wc -l < "$TRACKER")" -gt 100 ]; then
-  sort -u "$TRACKER" | tail -100 > "$TRACKER.tmp" && mv "$TRACKER.tmp" "$TRACKER"
+# Keep last 100 entries (no sort — preserve chronological order)
+if [ -f "$TRACKER" ] && [ "$(wc -l < "$TRACKER")" -gt 150 ]; then
+  tail -100 "$TRACKER" > "$TRACKER.tmp" && mv "$TRACKER.tmp" "$TRACKER"
 fi
 
 exit 0

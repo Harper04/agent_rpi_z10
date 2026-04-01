@@ -7,19 +7,17 @@
 set -euo pipefail
 
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
-EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_output.exit_code // "unknown"')
+
+# shellcheck source=../lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
+
+read -r COMMAND EXIT_CODE < <(jq -r '[.tool_input.command // "", .tool_output.exit_code // "unknown"] | @tsv' <<< "$INPUT")
 
 if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
-# Find the repo root (where CLAUDE.md lives)
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-LOG_DIR="$REPO_ROOT/local/logs"
 LOG_FILE="$LOG_DIR/session-log.jsonl"
-
-mkdir -p "$LOG_DIR"
 
 # Append structured log entry
 jq -nc \

@@ -1,7 +1,7 @@
 ---
 name: health
 description: Quick system health check with issue flagging
-user_invocable: true
+user-invocable: true
 ---
 
 Run the `health-check` skill and present results.

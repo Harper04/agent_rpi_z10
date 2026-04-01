@@ -65,7 +65,7 @@ k3s kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 
 ## Documentation
 
-After any change, update `docs/apps/k3s.md` with:
+After any change, update `local/docs/apps/k3s.md` with:
 - K3s version
 - Running workloads and namespaces
 - Exposed services (NodePort, LoadBalancer, Ingress)

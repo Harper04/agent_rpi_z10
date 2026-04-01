@@ -7,59 +7,34 @@
 set -euo pipefail
 
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+COMMAND=$(jq -r '.tool_input.command // empty' <<< "$INPUT")
 
 if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
-# --- Destructive command patterns ---
-BLOCKED_PATTERNS=(
-  # Filesystem destruction
-  "rm -rf /"
-  "rm -rf /\*"
-  "rm -rf /var"
-  "rm -rf /etc"
-  "rm -rf /home"
-  "rm -rf /usr"
-  "mkfs\."
-  "fdisk "
-  "dd if="
-  # System control
-  "shutdown"
-  "reboot"
-  # Network / access lockout
-  "tailscale down"
-  "iptables -F"
-  "iptables -X"
-  "ufw disable"
-  "systemctl stop sshd"
-  "systemctl stop tailscaled"
-  "systemctl disable"
-  "systemctl mask"
-  # Package management
-  "apt remove"
-  "apt purge"
-  "apt autoremove"
-  # Virtualisation
-  "virsh destroy"
-  "virsh undefine"
-  # Containers
-  "docker system prune -a"
-  "docker volume rm"
-  "kubectl delete namespace"
-  # Storage
-  "btrfs subvolume delete"
-  # Dangerous permission / cron changes
-  "chmod 777"
-  "crontab -r"
-)
+# --- Destructive command patterns (single combined regex) ---
+BLOCKED_REGEX="rm -rf /($|[*]|var|etc|home|usr)"
+BLOCKED_REGEX+="|mkfs\."
+BLOCKED_REGEX+="|fdisk "
+BLOCKED_REGEX+="|dd if="
+BLOCKED_REGEX+="|shutdown|reboot"
+BLOCKED_REGEX+="|tailscale down"
+BLOCKED_REGEX+="|iptables -(F|X)"
+BLOCKED_REGEX+="|ufw disable"
+BLOCKED_REGEX+="|systemctl (stop sshd|stop tailscaled|disable|mask)"
+BLOCKED_REGEX+="|apt (remove|purge|autoremove)"
+BLOCKED_REGEX+="|virsh (destroy|undefine)"
+BLOCKED_REGEX+="|docker system prune -a"
+BLOCKED_REGEX+="|docker volume rm"
+BLOCKED_REGEX+="|kubectl delete namespace"
+BLOCKED_REGEX+="|btrfs subvolume delete"
+BLOCKED_REGEX+="|chmod 777"
+BLOCKED_REGEX+="|crontab -r"
 
-for pattern in "${BLOCKED_PATTERNS[@]}"; do
-  if echo "$COMMAND" | grep -qEi "$pattern"; then
-    echo "🚫 BLOCKED: Destructive command detected: '$COMMAND'. This requires explicit operator confirmation. Please ask the operator before proceeding." >&2
-    exit 2
-  fi
-done
+if grep -qEi "$BLOCKED_REGEX" <<< "$COMMAND"; then
+  echo "🚫 BLOCKED: Destructive command detected: '$COMMAND'. This requires explicit operator confirmation. Please ask the operator before proceeding." >&2
+  exit 2
+fi
 
 exit 0
