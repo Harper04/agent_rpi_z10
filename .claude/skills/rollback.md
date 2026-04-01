@@ -1,8 +1,8 @@
 ---
 name: rollback
 description: Roll back a configuration change by restoring from .bak files or btrfs snapshots
-user_invocable: true
-arguments: "[file-or-service]"
+user-invocable: true
+argument-hint: "[file-or-service]"
 ---
 
 # Rollback

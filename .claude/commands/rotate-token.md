@@ -12,7 +12,7 @@ Guide the operator through rotating the fine-grained PAT.
 
 1. **Check current token validity:**
    ```bash
-   source local/.env
+   source scripts/lib/common.sh && common_init "$0" && safe_source
    curl -s -o /dev/null -w "HTTP %{http_code}" \
      -H "Authorization: Bearer $GITHUB_TOKEN" \
      https://api.github.com/user
@@ -31,7 +31,7 @@ Guide the operator through rotating the fine-grained PAT.
 
 4. **Verify new token:**
    ```bash
-   source local/.env
+   source scripts/lib/common.sh && common_init "$0" && safe_source
    curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
      https://api.github.com/user | jq '.login'
    ```

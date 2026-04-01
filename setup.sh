@@ -183,13 +183,14 @@ echo "  ℹ️  No token in URLs, no token in global git config"
 if [ -n "$GITHUB_TOKEN" ]; then
   echo ""
   echo "Verifying GitHub access..."
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  GH_RESPONSE=$(curl -s -w "\n%{http_code}" \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
-    "https://api.github.com/user" 2>/dev/null || echo "000")
+    "https://api.github.com/user" 2>/dev/null || echo -e "\n000")
+  HTTP_CODE=$(tail -1 <<< "$GH_RESPONSE")
+  GH_BODY=$(head -n -1 <<< "$GH_RESPONSE")
 
   if [ "$HTTP_CODE" = "200" ]; then
-    GH_USER=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-      "https://api.github.com/user" | jq -r '.login // "unknown"')
+    GH_USER=$(jq -r '.login // "unknown"' <<< "$GH_BODY")
     echo "  ✅ Token valid — authenticated as: $GH_USER"
   elif [ "$HTTP_CODE" = "401" ]; then
     echo "  ❌ Token invalid (HTTP 401). Check your PAT."
@@ -256,15 +257,17 @@ echo "  Tailscale:    $TS_IP"
 
 LOCAL_MD="local/CLAUDE.local.md"
 if [ -f "$LOCAL_MD" ]; then
-  sed -i "s/# Machine: TODO-HOSTNAME/# Machine: $HOST/" "$LOCAL_MD"
-  sed -i "s/| Hostname         | \`TODO\`/| Hostname         | \`$HOST\`/" "$LOCAL_MD"
-  sed -i "s/| OS               | Ubuntu Server 24.04 LTS/| OS               | $OS/" "$LOCAL_MD"
-  sed -i "s/| Architecture     | \`TODO\` (aarch64 \/ x86_64)/| Architecture     | \`$ARCH\`/" "$LOCAL_MD"
-  sed -i "s/| Primary IP       | \`TODO\`/| Primary IP       | \`$PRIMARY_IP\`/" "$LOCAL_MD"
-  sed -i "s/| Tailscale IP     | \`TODO\`/| Tailscale IP     | \`$TS_IP\`/" "$LOCAL_MD"
-  sed -i "s/| SSH Port         | \`TODO\`/| SSH Port         | \`$SSH_PORT\`/" "$LOCAL_MD"
-  sed -i "s|| Git origin       | \`TODO\`|| Git origin       | \`$ORIGIN_DISPLAY\`|" "$LOCAL_MD"
-  sed -i "s|| Git upstream     | \`TODO\`|| Git upstream     | \`$UPSTREAM_DISPLAY\`|" "$LOCAL_MD"
+  sed -i \
+    -e "s/# Machine: TODO-HOSTNAME/# Machine: $HOST/" \
+    -e "s/| Hostname         | \`TODO\`/| Hostname         | \`$HOST\`/" \
+    -e "s/| OS               | Ubuntu Server 24.04 LTS/| OS               | $OS/" \
+    -e "s/| Architecture     | \`TODO\` (aarch64 \/ x86_64)/| Architecture     | \`$ARCH\`/" \
+    -e "s/| Primary IP       | \`TODO\`/| Primary IP       | \`$PRIMARY_IP\`/" \
+    -e "s/| Tailscale IP     | \`TODO\`/| Tailscale IP     | \`$TS_IP\`/" \
+    -e "s/| SSH Port         | \`TODO\`/| SSH Port         | \`$SSH_PORT\`/" \
+    -e "s#| Git origin       | \`TODO\`#| Git origin       | \`$ORIGIN_DISPLAY\`#" \
+    -e "s#| Git upstream     | \`TODO\`#| Git upstream     | \`$UPSTREAM_DISPLAY\`#" \
+    "$LOCAL_MD"
   echo "  ✅ local/CLAUDE.local.md populated"
 fi
 
@@ -279,7 +282,7 @@ if [ -f local/.env ]; then
 fi
 
 # --- Make scripts executable ---
-find scripts/ -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
+find scripts/ -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
 chmod +x setup.sh
 
 # --- Install Claude Code Telegram plugin ---
@@ -320,8 +323,8 @@ if [ -f "$CRONTAB_EXAMPLE" ]; then
     # Skip blank lines and comment lines for dedup check
     [[ -z "$line" || "$line" =~ ^# || "$line" =~ ^SHELL= || "$line" =~ ^PATH= ]] && continue
     # Extract the script path from the cron line (last whitespace-separated token)
-    script_path=$(echo "$line" | awk '{print $NF}' | sed 's/"[^"]*"$//' | awk '{print $1}')
-    if echo "$EXISTING" | grep -qF "$script_path"; then
+    script_path=$(echo "$line" | awk '{print $NF}')
+    if [[ "$EXISTING" == *"$script_path"* ]]; then
       echo "  ℹ️  Already installed: $script_path"
     else
       if [ $ADDED -eq 0 ] && [ -n "$MERGED" ]; then

@@ -54,7 +54,7 @@ curl -vI https://<domain> 2>&1 | grep -E "expire|issuer|subject"
 
 ## Documentation
 
-After any change, update `docs/apps/caddy.md` with:
+After any change, update `local/docs/apps/caddy.md` with:
 - Current site list and upstreams
 - TLS provider (ACME / manual)
 - Last config change date

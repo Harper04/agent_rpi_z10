@@ -9,7 +9,7 @@
 #   BTRFS_SNAPSHOT_RETAIN_DAYS  Days to keep snapshots        (default: 30)
 #
 # Cron example:
-#   0 2 * * *  /home/tom/sysadmin-agent/scripts/cron/btrfs-snapshot.sh
+#   0 2 * * *  /path/to/sysadmin-agent/scripts/cron/btrfs-snapshot.sh
 
 set -euo pipefail
 
@@ -71,7 +71,7 @@ TOTAL="${#ALL_SNAPSHOTS[@]}"
 
 PRUNED=0
 for snapshot_path in "${ALL_SNAPSHOTS[@]}"; do
-    snapshot_name="$(basename "$snapshot_path")"
+    snapshot_name="${snapshot_path##*/}"
     snap_date="${snapshot_name#root-}"
 
     # Safety guard: never leave zero snapshots
@@ -93,4 +93,10 @@ for snapshot_path in "${ALL_SNAPSHOTS[@]}"; do
 done
 
 log "Pruned ${PRUNED} snapshot(s). ${SNAPSHOT_DIR} now contains $(( TOTAL - PRUNED )) snapshot(s)."
+
+# ── Rotate log file ──────────────────────────────────────────────────────────
+if [ -f "$LOG_FILE" ] && [ "$(wc -c < "$LOG_FILE")" -gt 524288 ]; then
+    mv "$LOG_FILE" "${LOG_FILE}.1"
+fi
+
 log "=== btrfs snapshot run complete ==="

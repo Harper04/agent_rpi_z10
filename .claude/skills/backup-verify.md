@@ -1,7 +1,7 @@
 ---
 name: backup-verify
 description: Verify backup integrity — check btrfs snapshots exist, test rsync checksums, validate Docker volume archives
-user_invocable: true
+user-invocable: true
 ---
 
 # Backup Verification

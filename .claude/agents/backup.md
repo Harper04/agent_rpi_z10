@@ -45,7 +45,7 @@ sudo umount /mnt/recovery
 
 **Manual prune (run script directly):**
 ```bash
-sudo /home/tom/sysadmin-agent/scripts/cron/btrfs-snapshot.sh
+sudo scripts/cron/btrfs-snapshot.sh
 ```
 
 **Delete a specific snapshot:**
@@ -87,7 +87,7 @@ tar tzf <archive>.tar.gz > /dev/null
 
 ## Documentation
 
-After any backup operation, update `docs/apps/backup.md`:
+After any backup operation, update `local/docs/apps/backup.md`:
 - Backup schedule and method per data source
 - Last successful backup date
 - Last verified restore date
