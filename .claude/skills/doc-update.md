@@ -14,8 +14,11 @@ After completing any system modification, execute this documentation workflow:
 
 2. **Update the relevant doc file:**
    - System-level change → `local/docs/system/<component>.md`
-   - App-level change → `local/docs/apps/<app>.md`
-   - New app installed → Copy `docs/apps/_template.md` to `local/docs/apps/<app>.md` and fill it
+   - App-level change → `local/docs/apps/<method>/<app>.md` (search recursively if method unknown)
+   - New app installed → Create `local/docs/apps/<method>/` directory, copy `docs/apps/_template.md`
+     to `local/docs/apps/<method>/<app>.md` and fill it (method = apt, docker, k3s, snap, binary, source)
+   - Update `local/docs/apps/_index.md` registry — add or update the app's row in the table.
+     If `_index.md` doesn't exist yet, copy from `docs/apps/_index_template.md` first.
 
 3. **Update package list if packages changed:**
    ```bash
