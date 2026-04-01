@@ -43,4 +43,27 @@ for pattern in "${BLOCKED_PATTERNS[@]}"; do
   fi
 done
 
+# --- git push upstream branch: scan diff for credentials ---
+if echo "$COMMAND" | grep -qE "git push upstream "; then
+  BRANCH=$(echo "$COMMAND" | grep -oP '(?<=git push upstream )\S+')
+
+  # Block pushes to main/master (belt-and-suspenders — also in deny list)
+  if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+    echo "🚫 BLOCKED: Direct push to upstream/${BRANCH} is not allowed. Use a feature branch." >&2
+    exit 2
+  fi
+
+  # Scan the diff about to be pushed for credential patterns
+  DIFF=$(git diff "upstream/main...${BRANCH}" 2>/dev/null || true)
+  CRED_PATTERN='(TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID|sk-ant-|ghp_|github_pat_|password\s*=\s*\S|secret\s*=\s*\S|api_key\s*=\s*\S)'
+  HITS=$(echo "$DIFF" | grep -Pn "^\+.*${CRED_PATTERN}" 2>/dev/null || true)
+
+  if [ -n "$HITS" ]; then
+    echo "🚫 BLOCKED: Possible credentials found in diff for upstream/${BRANCH}:" >&2
+    echo "$HITS" | head -10 >&2
+    echo "Review the above lines and remove secrets before pushing." >&2
+    exit 2
+  fi
+fi
+
 exit 0

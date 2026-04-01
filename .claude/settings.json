@@ -34,7 +34,8 @@
       "Bash(shutdown *)",
       "Bash(reboot)",
       "Bash(tailscale down)",
-      "Bash(git push upstream *)"
+      "Bash(git push upstream main)",
+      "Bash(git push upstream master)"
     ]
   },
   "hooks": {
