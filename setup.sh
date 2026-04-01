@@ -299,6 +299,50 @@ else
   echo "     claude plugin install telegram@claude-plugins-official"
 fi
 
+# --- Install cron jobs ---
+echo ""
+echo "Installing cron jobs..."
+
+CRONTAB_EXAMPLE="scripts/cron/crontab.example"
+REPO_PATH="$(pwd)"
+
+if [ -f "$CRONTAB_EXAMPLE" ]; then
+  # Build the new entries with correct repo path substituted
+  NEW_ENTRIES=$(sed "s|/home/tom/sysadmin-agent|${REPO_PATH}|g" "$CRONTAB_EXAMPLE")
+
+  # Get existing crontab (empty string if none)
+  EXISTING=$(crontab -l 2>/dev/null || true)
+
+  # Merge: append only entries whose script path isn't already in the crontab
+  ADDED=0
+  MERGED="$EXISTING"
+  while IFS= read -r line; do
+    # Skip blank lines and comment lines for dedup check
+    [[ -z "$line" || "$line" =~ ^# || "$line" =~ ^SHELL= || "$line" =~ ^PATH= ]] && continue
+    # Extract the script path from the cron line (last whitespace-separated token)
+    script_path=$(echo "$line" | awk '{print $NF}' | sed 's/"[^"]*"$//' | awk '{print $1}')
+    if echo "$EXISTING" | grep -qF "$script_path"; then
+      echo "  ℹ️  Already installed: $script_path"
+    else
+      if [ $ADDED -eq 0 ] && [ -n "$MERGED" ]; then
+        MERGED="${MERGED}"$'\n'
+      fi
+      MERGED="${MERGED}${line}"$'\n'
+      ADDED=$((ADDED + 1))
+      echo "  ✅ Added: $script_path"
+    fi
+  done <<< "$NEW_ENTRIES"
+
+  if [ $ADDED -gt 0 ]; then
+    echo "$MERGED" | crontab -
+    echo "  ✅ Crontab updated ($ADDED new job(s) added)"
+  else
+    echo "  ℹ️  All cron jobs already installed"
+  fi
+else
+  echo "  ⚠️  $CRONTAB_EXAMPLE not found — skipping"
+fi
+
 # --- Initial commit ---
 git add -A
 git commit -m "chore: initialize sysadmin-agent for $HOST" 2>/dev/null || true
