@@ -1,27 +1,17 @@
 # ============================================================
 # UPSTREAM TEMPLATE .gitignore
 # ============================================================
-# This .gitignore ships with the shared template.
-# It ensures that machine-specific data in local/ is committed
-# to the machine's own origin but NEVER reaches upstream.
-#
 # Git remotes:
 #   upstream = shared template repo (agents, skills, scripts)
-#   origin   = this machine's fork (includes local/)
+#   origin   = this machine's repo (includes local/)
 # ============================================================
-
-# --- Machine-specific (tracked in origin, blocked from upstream) ---
-# The local/ directory is committed to this machine's fork.
-# To prevent it from reaching upstream, the propose-upstream script
-# explicitly excludes it. This .gitignore entry is a safety net
-# for anyone who accidentally tries to push local/ to upstream.
-# NOTE: Do NOT add local/ here — it must be tracked by git in the fork.
 
 # --- Secrets (NEVER committed anywhere) ---
 local/.env
 *.key
 *.pem
 *.p12
+.git-credentials
 
 # --- Runtime files (NEVER committed) ---
 local/logs/

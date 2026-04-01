@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 # setup.sh — First-time setup for sysadmin-agent on a new machine.
 #
-# Workflow (no GitHub fork required):
+# Uses HTTPS + fine-grained PAT (no SSH keys needed on headless machines).
 #
-#   1. You have ONE template repo:  github.com/you/sysadmin-agent
-#   2. Per machine, create an EMPTY repo: github.com/you/sysadmin-rpi5-dad
-#   3. On the machine:
-#        git clone github.com/you/sysadmin-agent ~/sysadmin-agent
-#        cd ~/sysadmin-agent
-#        ./setup.sh --origin git@github.com:you/sysadmin-rpi5-dad.git
+# Quickstart:
+#   git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
+#   cd ~/sysadmin-agent
+#   ./setup.sh \
+#     --origin https://github.com/you/sysadmin-rpi5-dad.git \
+#     --token github_pat_XXXX
 #
-#   This renames the clone's default remote to 'upstream' and adds
-#   your machine-specific repo as 'origin'. From then on:
-#     - git push              → pushes to origin (machine repo, includes local/)
-#     - /sync                 → pulls shared updates from upstream
-#     - /contribute           → proposes changes back to upstream
+# What this does:
+#   1. Renames clone remote: origin → upstream (template stays reachable)
+#   2. Sets machine repo as new origin
+#   3. Stores token in local/.env (gitignored, never committed)
+#   4. Configures per-repo git credential helper (reads token from local/.env)
+#   5. Seeds local/ from templates/local/ with machine identity
 #
 # Options:
-#   --origin <url>    Machine-specific repo (required on first run)
-#   --name <hostname> Override auto-detected hostname
-#   --force           Re-seed local/ from templates even if it exists
+#   --origin <url>     Machine-specific repo URL (HTTPS)
+#   --token <pat>      GitHub fine-grained PAT (stored in local/.env only)
+#   --name <hostname>  Override auto-detected hostname
+#   --force            Re-seed local/ from templates even if it exists
 
 set -euo pipefail
 
@@ -27,21 +29,38 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 ORIGIN_URL=""
+GITHUB_TOKEN=""
 HOSTNAME_OVERRIDE=""
 FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --origin)  ORIGIN_URL="$2"; shift 2 ;;
+    --token)   GITHUB_TOKEN="$2"; shift 2 ;;
     --name)    HOSTNAME_OVERRIDE="$2"; shift 2 ;;
     --force)   FORCE=true; shift ;;
     -h|--help)
-      echo "Usage: $0 --origin <machine-repo-url> [--name <hostname>] [--force]"
-      echo ""
-      echo "Example:"
-      echo "  git clone git@github.com:you/sysadmin-agent.git ~/sysadmin-agent"
-      echo "  cd ~/sysadmin-agent"
-      echo "  ./setup.sh --origin git@github.com:you/sysadmin-rpi5-dad.git"
+      cat <<'EOF'
+Usage: ./setup.sh --origin <machine-repo-url> --token <github-pat> [options]
+
+Options:
+  --origin <url>     Machine repo URL (HTTPS, required on first run)
+  --token <pat>      GitHub fine-grained PAT (stored in local/.env)
+  --name <hostname>  Override auto-detected hostname
+  --force            Re-seed local/ even if it exists
+
+Example:
+  git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
+  cd ~/sysadmin-agent
+  ./setup.sh \
+    --origin https://github.com/you/sysadmin-rpi5-dad.git \
+    --token github_pat_XXXXXXXXXXXX
+
+Fine-grained PAT setup:
+  https://github.com/settings/personal-access-tokens/new
+  → Only select repositories: sysadmin-agent + sysadmin-<machine>
+  → Permissions: Contents (Read and write)
+EOF
       exit 0
       ;;
     *)
@@ -56,78 +75,38 @@ echo "======================================"
 echo ""
 echo "Checking prerequisites..."
 
-check_cmd() {
-  if command -v "$1" &>/dev/null; then
-    echo "  ✅ $1"
+MISSING=false
+for cmd in git jq curl; do
+  if command -v "$cmd" &>/dev/null; then
+    echo "  ✅ $cmd"
   else
-    echo "  ❌ $1 not found"
+    echo "  ❌ $cmd not found"
     MISSING=true
   fi
-}
+done
 
-MISSING=false
-check_cmd git
-check_cmd jq
-check_cmd claude
-check_cmd curl
+# claude is optional at setup time (might install later)
+if command -v claude &>/dev/null; then
+  echo "  ✅ claude"
+else
+  echo "  ⚠️  claude not found (install before using agents)"
+fi
 
 if [ "$MISSING" = true ]; then
   echo ""
   echo "Install missing prerequisites:"
   echo "  apt install -y jq curl git"
-  echo "  npm install -g @anthropic-ai/claude-code"
   exit 1
 fi
 
-# --- Configure git remotes ---
-#
-# After cloning the template, 'origin' points to the template repo.
-# We rename that to 'upstream' and set the machine repo as 'origin'.
-
-echo ""
-echo "Configuring git remotes..."
-
+# --- Ensure git repo ---
 if [ ! -d .git ]; then
   echo "  ❌ Not a git repository. Clone the template first:"
-  echo "     git clone <template-repo-url> ~/sysadmin-agent"
+  echo "     git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent"
   exit 1
 fi
 
-# Detect: is this a fresh clone of the template? (origin still points to template)
-CURRENT_ORIGIN=$(git remote get-url origin 2>/dev/null || echo "")
-
-if [ -n "$ORIGIN_URL" ]; then
-  # Rename current origin → upstream (if it exists and isn't already the machine repo)
-  if [ -n "$CURRENT_ORIGIN" ] && [ "$CURRENT_ORIGIN" != "$ORIGIN_URL" ]; then
-    if git remote get-url upstream &>/dev/null; then
-      echo "  ℹ️  upstream already set: $(git remote get-url upstream)"
-    else
-      git remote rename origin upstream
-      echo "  ✅ Renamed origin → upstream: $CURRENT_ORIGIN"
-    fi
-  fi
-
-  # Set origin to machine-specific repo
-  if git remote get-url origin &>/dev/null; then
-    git remote set-url origin "$ORIGIN_URL"
-  else
-    git remote add origin "$ORIGIN_URL"
-  fi
-  echo "  ✅ origin set to: $ORIGIN_URL"
-else
-  # No --origin given: check if remotes are already configured
-  if ! git remote get-url upstream &>/dev/null; then
-    echo "  ⚠️  No upstream remote and no --origin given."
-    echo "     On first run, provide: ./setup.sh --origin <machine-repo-url>"
-    echo "     This will rename the template remote to 'upstream' automatically."
-  fi
-fi
-
-echo ""
-echo "  Remotes:"
-git remote -v | sed 's/^/    /'
-
-# --- Seed local/ from templates ---
+# --- Seed local/ from templates (before writing token) ---
 echo ""
 echo "Seeding local/ from templates/local/..."
 
@@ -140,6 +119,100 @@ else
 fi
 
 mkdir -p local/docs/system local/docs/apps local/docs/runbooks local/agents local/logs
+
+# --- Store token in local/.env ---
+if [ -n "$GITHUB_TOKEN" ]; then
+  echo ""
+  echo "Storing credentials in local/.env..."
+
+  if [ -f local/.env ]; then
+    # Update existing token
+    if grep -q "^GITHUB_TOKEN=" local/.env; then
+      sed -i "s|^GITHUB_TOKEN=.*|GITHUB_TOKEN=$GITHUB_TOKEN|" local/.env
+    else
+      echo "GITHUB_TOKEN=$GITHUB_TOKEN" >> local/.env
+    fi
+  else
+    cp .env.example local/.env
+    sed -i "s|^GITHUB_TOKEN=.*|GITHUB_TOKEN=$GITHUB_TOKEN|" local/.env
+  fi
+
+  echo "  ✅ Token stored in local/.env (gitignored)"
+
+  # Clear token from shell history (best effort)
+  unset HISTFILE 2>/dev/null || true
+fi
+
+# --- Configure git credential helper ---
+echo ""
+echo "Configuring git credential helper..."
+
+CRED_HELPER="$(pwd)/scripts/git/git-credential-local-env.sh"
+chmod +x "$CRED_HELPER"
+
+# Set as LOCAL (per-repo) credential helper — never touches global git config
+git config --local credential.helper "$CRED_HELPER"
+# Disable other credential helpers for this repo to avoid token prompts
+git config --local credential.useHttpPath true
+
+echo "  ✅ Per-repo credential helper configured"
+echo "  ℹ️  Token is read from local/.env at git-push/pull time"
+echo "  ℹ️  No token in URLs, no token in global git config"
+
+# --- Verify token works (if token was provided) ---
+if [ -n "$GITHUB_TOKEN" ]; then
+  echo ""
+  echo "Verifying GitHub access..."
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    "https://api.github.com/user" 2>/dev/null || echo "000")
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    GH_USER=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+      "https://api.github.com/user" | jq -r '.login // "unknown"')
+    echo "  ✅ Token valid — authenticated as: $GH_USER"
+  elif [ "$HTTP_CODE" = "401" ]; then
+    echo "  ❌ Token invalid (HTTP 401). Check your PAT."
+    echo "     Create a new one: https://github.com/settings/personal-access-tokens/new"
+  else
+    echo "  ⚠️  Could not verify token (HTTP $HTTP_CODE). Continuing anyway."
+  fi
+fi
+
+# --- Configure git remotes ---
+echo ""
+echo "Configuring git remotes..."
+
+CURRENT_ORIGIN=$(git remote get-url origin 2>/dev/null || echo "")
+
+if [ -n "$ORIGIN_URL" ]; then
+  # Rename current origin → upstream (template)
+  if [ -n "$CURRENT_ORIGIN" ] && [ "$CURRENT_ORIGIN" != "$ORIGIN_URL" ]; then
+    if git remote get-url upstream &>/dev/null; then
+      echo "  ℹ️  upstream already set: $(git remote get-url upstream)"
+    else
+      git remote rename origin upstream
+      echo "  ✅ Renamed origin → upstream (template): $CURRENT_ORIGIN"
+    fi
+  fi
+
+  # Set machine repo as origin
+  if git remote get-url origin &>/dev/null; then
+    git remote set-url origin "$ORIGIN_URL"
+  else
+    git remote add origin "$ORIGIN_URL"
+  fi
+  echo "  ✅ origin (machine): $ORIGIN_URL"
+else
+  if ! git remote get-url upstream &>/dev/null; then
+    echo "  ⚠️  No --origin given. On first run, provide:"
+    echo "     ./setup.sh --origin https://github.com/you/sysadmin-<machine>.git --token <pat>"
+  fi
+fi
+
+echo ""
+echo "  Remotes:"
+git remote -v | sed 's/^/    /'
 
 # --- Fill machine identity ---
 echo ""
@@ -175,19 +248,21 @@ if [ -f "$LOCAL_MD" ]; then
   echo "  ✅ local/CLAUDE.local.md populated"
 fi
 
-# --- Environment file ---
-if [ ! -f local/.env ]; then
-  echo ""
-  cp .env.example local/.env
-  echo "  ⚠️  Created local/.env — edit with Telegram credentials:"
-  echo "     nano local/.env"
+# --- Ensure local/.env has all fields ---
+if [ -f local/.env ]; then
+  # Add missing fields from template
+  for key in TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID POLL_INTERVAL; do
+    if ! grep -q "^${key}=" local/.env; then
+      grep "^${key}=" .env.example >> local/.env 2>/dev/null || true
+    fi
+  done
 fi
 
 # --- Make scripts executable ---
 find scripts/ -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
 chmod +x setup.sh
 
-# --- Initial commit & push ---
+# --- Initial commit ---
 git add -A
 git commit -m "chore: initialize sysadmin-agent for $HOST" 2>/dev/null || true
 
@@ -196,13 +271,13 @@ echo "======================================"
 echo "✅ Setup complete for $HOST!"
 echo ""
 echo "Next steps:"
-echo "  1. nano local/.env                   # Telegram credentials"
+echo "  1. nano local/.env                   # Add Telegram credentials"
 echo "  2. git push -u origin main           # Push to machine repo"
 echo "  3. claude --agent orchestrator       # Start agent"
 echo "     > /inventory                       # First system scan"
 echo ""
-echo "Optional:"
-echo "  4. sudo cp scripts/telegram-bot/sysadmin-agent-telegram.service /etc/systemd/system/"
-echo "     sudo systemctl enable --now sysadmin-agent-telegram"
-echo "  5. crontab scripts/cron/crontab.example"
+echo "Token management:"
+echo "  - Token is in local/.env (never committed, never in URLs)"
+echo "  - Rotate: update GITHUB_TOKEN in local/.env"
+echo "  - Verify: curl -H 'Authorization: Bearer <token>' https://api.github.com/user"
 echo ""

@@ -53,15 +53,21 @@ There is ONE template repo and N machine repos. No GitHub forks needed.
      └─ /contribute pushes improvement branches
 ```
 
-**Setup per machine (no fork):**
+**Setup per machine (HTTPS + fine-grained PAT, no fork, no SSH key):**
 ```bash
-git clone <template-repo> ~/sysadmin-agent
+git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
 cd ~/sysadmin-agent
-./setup.sh --origin <empty-machine-repo>
+./setup.sh --origin https://github.com/you/sysadmin-rpi5-dad.git --token github_pat_XXXX
+# → stores token in local/.env, configures per-repo credential helper
 # → renames clone remote to 'upstream', sets machine repo as 'origin'
 # → seeds local/ from templates/local/, fills machine identity
 git push -u origin main
 ```
+
+**Authentication:**
+- Token lives in `local/.env` (gitignored, never committed)
+- Per-repo credential helper reads token at push/pull time
+- No token in URLs, no global git config, no SSH keys needed
 
 **Rules:**
 - `local/` exists only in machine repos, never in the template.
