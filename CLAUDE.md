@@ -28,32 +28,46 @@ the boundaries defined below.
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Repository Model
+## Repository Model: Clone + Upstream Remote
 
-This repo uses a **shared-template + local-fork** architecture:
+There is ONE template repo and N machine repos. No GitHub forks needed.
 
 ```
-  upstream (template)          origin (this machine)
-  ┌───────────────────┐        ┌───────────────────────┐
-  │ .claude/agents/   │◄──pull─┤ .claude/agents/       │
-  │ .claude/skills/   │        │ .claude/skills/       │
-  │ .claude/commands/  │        │ .claude/commands/     │
-  │ scripts/          │──push──►│ scripts/              │
-  │ CLAUDE.md         │  (via  │ CLAUDE.md             │
-  │ docs/templates    │ propose│                       │
-  └───────────────────┘   -pr) │ local/  ← NEVER pushed│
-                               │ ├── CLAUDE.local.md   │
-                               │ ├── docs/             │
-                               │ ├── .env              │
-                               │ └── logs/             │
-                               └───────────────────────┘
+  Template repo (upstream)         Machine repo (origin)
+  sysadmin-agent                   sysadmin-rpi5-dad
+  ┌────────────────────┐           ┌────────────────────────┐
+  │ .claude/agents/    │──clone──► │ .claude/agents/        │
+  │ .claude/skills/    │           │ .claude/skills/        │
+  │ .claude/commands/  │           │ .claude/commands/      │
+  │ scripts/           │           │ scripts/               │
+  │ templates/local/   │           │ templates/local/       │
+  │ CLAUDE.md          │           │ CLAUDE.md              │
+  │                    │           │                        │
+  │ (no local/)        │  ◄─push── │ local/  ← ONLY here   │
+  │                    │  (branch) │ ├── CLAUDE.local.md    │
+  └────────────────────┘           │ ├── docs/ (machine)   │
+     ▲                             │ ├── .env (gitignored)  │
+     │ /sync pulls                 │ └── logs/ (gitignored) │
+     │ shared updates              └────────────────────────┘
+     │
+     └─ /contribute pushes improvement branches
+```
+
+**Setup per machine (no fork):**
+```bash
+git clone <template-repo> ~/sysadmin-agent
+cd ~/sysadmin-agent
+./setup.sh --origin <empty-machine-repo>
+# → renames clone remote to 'upstream', sets machine repo as 'origin'
+# → seeds local/ from templates/local/, fills machine identity
+git push -u origin main
 ```
 
 **Rules:**
-- Everything in `local/` is machine-specific and NEVER pushed to upstream.
-- Improvements to agents, skills, hooks, scripts → propose upstream via `/contribute`.
-- Pull from upstream regularly to get shared improvements.
-- Machine-specific agent overrides go in `local/agents/`.
+- `local/` exists only in machine repos, never in the template.
+- `local/.env` and `local/logs/` are gitignored — never committed anywhere.
+- Improvements to shared files → `/contribute` pushes a branch to upstream.
+- Template updates → `/sync` merges from upstream/main.
 
 ## Core Rules
 
@@ -97,18 +111,14 @@ This repo uses a **shared-template + local-fork** architecture:
 │   ├── apps/_template.md    ← shared template for app docs
 │   └── runbooks/_template.md ← shared template for runbooks
 ├── templates/
-│   └── local/               ← seed files for local/ (copied by setup.sh)
+│   └── local/               ← seed files (copied to local/ by setup.sh)
 │
-├── local/                   ← ⚠ MACHINE-SPECIFIC — never pushed upstream
+├── local/                   ← ⚠ MACHINE-SPECIFIC — only in machine repo
 │   ├── CLAUDE.local.md      ← machine identity & overrides
 │   ├── agents/              ← local agent overrides/additions
-│   ├── docs/
-│   │   ├── system/          ← this machine's system documentation
-│   │   ├── apps/            ← this machine's app documentation
-│   │   ├── runbooks/        ← this machine's runbooks
-│   │   └── changelog.md     ← this machine's change log
-│   ├── .env                 ← secrets (gitignored — NEVER committed)
-│   └── logs/                ← runtime logs (gitignored)
+│   ├── docs/                ← this machine's documentation
+│   ├── .env                 ← secrets (NEVER committed)
+│   └── logs/                ← runtime logs (NEVER committed)
 └── .gitignore
 ```
 

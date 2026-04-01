@@ -32,17 +32,15 @@ the operator (Tom) via Telegram or direct CLI interaction.
 | health, status, disk, memory, load         | (handle directly)  |
 | docs, documentation, changelog             | (handle directly)  |
 | contribute, upstream, propose, improve     | (handle directly)  |
-| sync, pull upstream                        | (handle directly)  |
+| sync, pull upstream, update template       | (handle directly)  |
 
 ## Local Agent Overrides
 
-Before routing, check if a local override exists in `local/agents/<agent>.md`.
-If it does, load that instead of the shared version in `.claude/agents/`.
-
+Before routing, check `local/agents/` for a machine-specific override:
 ```bash
-# Check for local override
 ls local/agents/ 2>/dev/null
 ```
+If `local/agents/<agent>.md` exists, use it instead of `.claude/agents/<agent>.md`.
 
 ## Direct Handling
 
@@ -58,17 +56,13 @@ systemctl --failed
 ss -tlnp
 ```
 
-### Documentation Update
-Read the relevant `local/docs/` file, update it with current state, and commit.
-
 ### Upstream Sync
 ```bash
 ./scripts/git/sync-upstream.sh --dry-run
-# Show the output and ask operator whether to proceed
+# Show output, ask operator whether to proceed
 ```
 
 ### Propose Upstream
-When an agent improvement was made:
 ```bash
 ./scripts/git/propose-upstream.sh --file <changed-file> "description"
 ```
@@ -76,31 +70,30 @@ When an agent improvement was made:
 ## Delegation Protocol
 
 When delegating to a sub-agent:
-1. Load the local machine config: `local/CLAUDE.local.md`
-2. Load the relevant app doc: `local/docs/apps/<app>.md`
-3. Check for local agent override: `local/agents/<agent>.md`
-4. Provide the task description and any constraints
-5. After completion, verify the sub-agent updated documentation in `local/docs/`
-6. If docs were not updated, update them yourself
+1. Load machine config: `local/CLAUDE.local.md`
+2. Load app doc: `local/docs/apps/<app>.md`
+3. Check for local override: `local/agents/<agent>.md`
+4. Provide task description and constraints
+5. After completion, verify documentation in `local/docs/` was updated
+6. If not, update it yourself
 7. Append to `local/docs/changelog.md`
 
 ## Error Handling
 
 If a sub-agent fails:
-1. Capture the error output
-2. Check logs (`journalctl -u <service> --since "5 min ago"`)
-3. Attempt rollback if a `.bak` file exists
-4. Report failure with context to operator
+1. Capture error output
+2. Check logs: `journalctl -u <service> --since "5 min ago"`
+3. Attempt rollback if `.bak` file exists
+4. Report failure to operator
 
 ## Improvement Detection
 
 After completing a task, evaluate:
-- Did you discover a better command sequence? → Update the agent's procedures
-- Did you find a new gotcha? → Add to the agent's Safety Rules
-- Did you add a new health check? → Add to the health-check skill
-- Are these improvements **machine-specific** or **universal**?
-  - Machine-specific → Update in `local/agents/` or `local/docs/`
-  - Universal → Update the shared file AND run `/contribute`
+- Better command sequence discovered? → Update the agent
+- New gotcha found? → Add to Safety Rules
+- New health check? → Add to health-check skill
+- **Universal** improvement? → Update shared file + `/contribute`
+- **Machine-specific** finding? → `local/agents/` or `local/docs/` only
 
 ## Changelog Format
 

@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
-# sync-upstream.sh — Pull shared improvements from the upstream template.
+# sync-upstream.sh — Pull shared improvements from the template repo.
 #
-# This merges upstream/main into the current branch, pulling in:
-# - Updated agents, skills, commands, hooks
-# - Improved scripts
-# - Template updates
-#
-# Your local/ directory is never affected (it doesn't exist in upstream).
+# Your machine repo was cloned from the template. The template remote
+# is called 'upstream'. This script merges template updates into your
+# machine's main branch without touching local/.
 #
 # Usage:
-#   ./scripts/git/sync-upstream.sh          # merge upstream/main
-#   ./scripts/git/sync-upstream.sh --rebase  # rebase onto upstream/main
-#   ./scripts/git/sync-upstream.sh --dry-run # show what would change
+#   ./scripts/git/sync-upstream.sh              # merge
+#   ./scripts/git/sync-upstream.sh --rebase     # rebase instead
+#   ./scripts/git/sync-upstream.sh --dry-run    # preview only
 
 set -euo pipefail
 
@@ -29,49 +26,44 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --- Verify upstream remote ---
+# --- Verify ---
 if ! git remote get-url upstream &>/dev/null; then
-  echo "❌ No 'upstream' remote found."
-  echo "   Add it with: git remote add upstream <template-repo-url>"
+  echo "❌ No 'upstream' remote. Add it:"
+  echo "   git remote add upstream <template-repo-url>"
   exit 1
 fi
 
-# --- Check for uncommitted changes ---
 if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "⚠️  You have uncommitted changes. Commit or stash them first."
+  echo "⚠️  Uncommitted changes. Commit or stash first."
   exit 1
 fi
 
 echo "📡 Fetching upstream..."
 git fetch upstream
 
-CURRENT=$(git rev-parse HEAD)
-UPSTREAM=$(git rev-parse upstream/main)
-BASE=$(git merge-base HEAD upstream/main)
+UPSTREAM=$(git rev-parse upstream/main 2>/dev/null)
+BASE=$(git merge-base HEAD upstream/main 2>/dev/null)
 
 if [ "$UPSTREAM" = "$BASE" ]; then
-  echo "✅ Already up to date with upstream."
+  echo "✅ Already up to date with upstream template."
   exit 0
 fi
 
-# --- Show what would change ---
 echo ""
-echo "📋 Changes from upstream since last sync:"
+echo "📋 New commits from template:"
 git --no-pager log --oneline "$BASE..$UPSTREAM" | head -20
 
 echo ""
-echo "📁 Files that would change:"
+echo "📁 Changed files:"
 git diff --stat "$BASE..upstream/main" -- \
-  .claude/ scripts/ docs/ CLAUDE.md .gitignore .env.example
+  .claude/ scripts/ docs/ templates/ CLAUDE.md .gitignore .env.example setup.sh README.md 2>/dev/null
 
 if $DRY_RUN; then
   echo ""
   echo "ℹ️  Dry run — no changes applied."
-  echo "   Run without --dry-run to apply."
   exit 0
 fi
 
-# --- Apply changes ---
 echo ""
 if [ "$MODE" = "rebase" ]; then
   echo "🔄 Rebasing onto upstream/main..."
@@ -84,12 +76,9 @@ fi
 echo ""
 echo "✅ Sync complete."
 echo ""
-echo "If there were conflicts:"
-echo "  1. Resolve them (shared files should generally take upstream version)"
-echo "  2. Keep your local/ customizations"
-echo "  3. git add <resolved-files> && git commit"
+echo "Conflict resolution tips:"
+echo "  - Shared files (.claude/, scripts/): prefer upstream version"
+echo "  - local/ is never in upstream, so no conflicts there"
+echo "  - templates/local/: take upstream (your local/ is separate)"
 echo ""
-echo "Post-sync checklist:"
-echo "  - [ ] Check that agents still work: claude --agent orchestrator -p '/status'"
-echo "  - [ ] Review any new agents/skills that were added"
-echo "  - [ ] Update local/CLAUDE.local.md if new features need local config"
+echo "Verify: claude --agent orchestrator -p '/status'"
