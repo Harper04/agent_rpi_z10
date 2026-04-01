@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # telegram-dispatch.sh — Polls Telegram for messages and dispatches to Claude Code
 #
+# ⚠️  DEPRECATED as a long-running service.
+#     The active Telegram integration is the MCP plugin (plugin:telegram) running
+#     inside the interactive Claude session (see claude-agent.service / start-agent.sh).
+#     Do NOT start this as a systemd service alongside that session — it will cause
+#     duplicate responses and consume the same message updates.
+#
+#     This script is kept for reference and one-shot use (--once flag).
+#
 # Requirements:
 #   - TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in local/.env
 #   - claude CLI installed and authenticated
 #   - jq installed
 #
 # Usage:
-#   ./telegram-dispatch.sh              # Run in foreground (polling)
-#   ./telegram-dispatch.sh --once       # Process one batch and exit (for cron)
+#   ./telegram-dispatch.sh --once       # Process one batch and exit (debugging only)
 
 set -euo pipefail
 
