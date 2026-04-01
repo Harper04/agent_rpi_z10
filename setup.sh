@@ -76,7 +76,7 @@ echo ""
 echo "Checking prerequisites..."
 
 MISSING=false
-for cmd in git jq curl; do
+for cmd in git jq curl unzip; do
   if command -v "$cmd" &>/dev/null; then
     echo "  ✅ $cmd"
   else
@@ -85,18 +85,38 @@ for cmd in git jq curl; do
   fi
 done
 
+if [ "$MISSING" = true ]; then
+  echo ""
+  echo "Install missing prerequisites:"
+  echo "  apt install -y jq curl git unzip"
+  exit 1
+fi
+
+# --- Install bun (required for Telegram channel MCP plugin) ---
+echo ""
+echo "Checking bun runtime..."
+
+if command -v bun &>/dev/null || [ -x "$HOME/.bun/bin/bun" ]; then
+  BUN_VER=$(${BUN_INSTALL:-$HOME/.bun}/bin/bun --version 2>/dev/null || bun --version)
+  echo "  ✅ bun $BUN_VER"
+else
+  echo "  ℹ️  bun not found — installing (required for Telegram channel MCP)..."
+  curl -fsSL https://bun.sh/install | bash 2>&1 | tail -3
+  # Add to PATH for the rest of this script
+  export PATH="$HOME/.bun/bin:$PATH"
+  if command -v bun &>/dev/null; then
+    echo "  ✅ bun $(bun --version) installed"
+    echo "  ℹ️  Run: source ~/.bashrc   (or open a new shell) to get bun in PATH"
+  else
+    echo "  ❌ bun install failed — Telegram channel MCP will not start"
+  fi
+fi
+
 # claude is optional at setup time (might install later)
 if command -v claude &>/dev/null; then
   echo "  ✅ claude"
 else
   echo "  ⚠️  claude not found (install before using agents)"
-fi
-
-if [ "$MISSING" = true ]; then
-  echo ""
-  echo "Install missing prerequisites:"
-  echo "  apt install -y jq curl git"
-  exit 1
 fi
 
 # --- Ensure git repo ---
@@ -262,6 +282,23 @@ fi
 find scripts/ -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
 chmod +x setup.sh
 
+# --- Install Claude Code Telegram plugin ---
+if command -v claude &>/dev/null; then
+  echo ""
+  echo "Installing Claude Code Telegram plugin..."
+  if claude plugin install telegram@claude-plugins-official --yes 2>/dev/null; then
+    echo "  ✅ Telegram plugin installed"
+  else
+    echo "  ⚠️  Plugin install failed or already installed — skipping"
+    echo "     Manual: claude plugin install telegram@claude-plugins-official"
+  fi
+else
+  echo ""
+  echo "  ⚠️  claude not installed — skipping Telegram plugin install"
+  echo "     After installing Claude Code, run:"
+  echo "     claude plugin install telegram@claude-plugins-official"
+fi
+
 # --- Initial commit ---
 git add -A
 git commit -m "chore: initialize sysadmin-agent for $HOST" 2>/dev/null || true
@@ -271,10 +308,11 @@ echo "======================================"
 echo "✅ Setup complete for $HOST!"
 echo ""
 echo "Next steps:"
-echo "  1. nano local/.env                   # Add Telegram credentials"
-echo "  2. git push -u origin main           # Push to machine repo"
-echo "  3. claude --agent orchestrator       # Start agent"
-echo "     > /inventory                       # First system scan"
+echo "  1. nano local/.env                                            # Add Telegram credentials"
+echo "  2. git push -u origin main                                    # Push to machine repo"
+echo "  3. source ~/.bashrc                                           # Reload PATH (includes bun)"
+echo "  4. claude --agent orchestrator                                # Start agent"
+echo "     > /inventory                                               # First system scan"
 echo ""
 echo "Token management:"
 echo "  - Token is in local/.env (never committed, never in URLs)"
