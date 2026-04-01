@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-REPO="/home/tomjaster/sysadmin-agent"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
 
 # Load secrets into environment
@@ -65,7 +65,7 @@ telegram_alert() {
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo -e "${GREEN}╔══════════════════════════════════════════╗${RESET}"
 echo -e "${GREEN}║      Sysadmin Claude Agent               ║${RESET}"
-echo -e "${GREEN}║      ziegeleiweg-pi                      ║${RESET}"
+echo -e "${GREEN}║      $(hostname)$(printf '%*s' $((38 - ${#HOSTNAME})) '')║${RESET}"
 echo -e "${GREEN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
 
@@ -92,7 +92,10 @@ while true; do
     log "${GREEN}[$(stamp)] Starting claude (attempt #${ATTEMPT}, consecutive failures: ${CONSECUTIVE_FAILURES})...${RESET}"
 
     START_TS=$(date +%s)
-    claude --dangerously-skip-permissions >> "$LOG_FILE" 2>&1 || true
+    # Run claude against the tmux PTY so it detects an interactive terminal.
+    # Wrapper log messages are written via log(); tmux pipe-pane (set up in
+    # start-agent.sh) captures the full window output to the log file.
+    claude --dangerously-skip-permissions || true
     EXIT_CODE=$?
     END_TS=$(date +%s)
     UPTIME=$(( END_TS - START_TS ))
@@ -108,7 +111,7 @@ while true; do
         log "${RED}[$(stamp)] Claude crashed after ${UPTIME}s (code: ${EXIT_CODE}). Failure #${CONSECUTIVE_FAILURES}. Restarting in ${SLEEP}s...${RESET}"
 
         if (( CONSECUTIVE_FAILURES == CRASH_ALERT_THRESHOLD )); then
-            telegram_alert "⚠️ *sysadmin-agent* on \`ziegeleiweg-pi\` has crashed ${CONSECUTIVE_FAILURES} times in a row (last exit code: ${EXIT_CODE}). Check \`tmux attach -t sysadmin-agent\`."
+            telegram_alert "⚠️ *sysadmin-agent* on \`$(hostname)\` has crashed ${CONSECUTIVE_FAILURES} times in a row (last exit code: ${EXIT_CODE}). Check \`tmux attach -t sysadmin-agent\`."
         fi
 
         sleep "$SLEEP"

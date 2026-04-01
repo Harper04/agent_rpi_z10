@@ -11,7 +11,7 @@
 set -uo pipefail
 
 SESSION="sysadmin-agent"
-REPO="/home/tomjaster/sysadmin-agent"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
 setup_session() {
     echo "[$(date -Is)] Creating tmux session '${SESSION}'..."
@@ -28,7 +28,7 @@ setup_session() {
     tmux set-option -t "$SESSION" status-interval 10
     tmux set-option -t "$SESSION" status-style        "bg=colour235,fg=colour250"
     tmux set-option -t "$SESSION" status-left         "#[bold,fg=colour46] sysadmin-agent #[fg=colour244] │ "
-    tmux set-option -t "$SESSION" status-right        "#[fg=colour244]ziegeleiweg-pi │ #[fg=colour250]%H:%M "
+    tmux set-option -t "$SESSION" status-right        "#[fg=colour244]$(hostname) │ #[fg=colour250]%H:%M "
     tmux set-option -t "$SESSION" window-status-current-style "fg=colour46,bold"
     tmux set-option -t "$SESSION" pane-border-style   "fg=colour238"
     tmux set-option -t "$SESSION" pane-active-border-style "fg=colour46"
@@ -37,6 +37,11 @@ setup_session() {
     # Window 0: claude restart loop
     tmux send-keys -t "${SESSION}:agent" \
         "bash ${REPO}/scripts/run-agent.sh" Enter
+
+    # Capture all agent-window output to log file (without breaking PTY)
+    mkdir -p "${REPO}/local/logs"
+    tmux pipe-pane -t "${SESSION}:agent" \
+        "cat >> ${REPO}/local/logs/agent.log"
 
     # Window 1: spare interactive shell
     tmux new-window -t "$SESSION" -n "shell"
