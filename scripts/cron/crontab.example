@@ -1,0 +1,20 @@
+# Sysadmin Agent — Scheduled Tasks
+# Install with: crontab scripts/cron/crontab.example
+# Edit with:    crontab -e
+#
+# Adjust paths if repo is not at /home/tom/sysadmin-agent
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# Daily 03:00 — Security updates only (unattended)
+0 3 * * *    /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "system-upgrade --security-only --unattended"
+
+# Weekly Sunday 04:00 — Full system upgrade (unattended)
+0 4 * * 0    /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "system-upgrade --unattended"
+
+# Daily 06:00 — Health check
+0 6 * * *    /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "health-check"
+
+# Weekly Monday 05:00 — Full inventory refresh
+0 5 * * 1    /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "inventory"

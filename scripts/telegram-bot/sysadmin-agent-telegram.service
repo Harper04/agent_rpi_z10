@@ -1,0 +1,20 @@
+[Unit]
+Description=Sysadmin Agent Telegram Dispatcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tom
+WorkingDirectory=/home/tom/sysadmin-agent
+ExecStart=/home/tom/sysadmin-agent/scripts/telegram-bot/telegram-dispatch.sh
+Restart=on-failure
+RestartSec=30
+EnvironmentFile=/home/tom/sysadmin-agent/local/.env
+
+# Security hardening
+NoNewPrivileges=false
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target
