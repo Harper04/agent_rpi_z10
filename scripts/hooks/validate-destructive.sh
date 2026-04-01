@@ -15,25 +15,44 @@ fi
 
 # --- Destructive command patterns ---
 BLOCKED_PATTERNS=(
+  # Filesystem destruction
   "rm -rf /"
-  "rm -rf /*"
+  "rm -rf /\*"
+  "rm -rf /var"
+  "rm -rf /etc"
+  "rm -rf /home"
+  "rm -rf /usr"
   "mkfs\."
   "fdisk "
   "dd if="
+  # System control
   "shutdown"
   "reboot"
+  # Network / access lockout
   "tailscale down"
+  "iptables -F"
+  "iptables -X"
+  "ufw disable"
+  "systemctl stop sshd"
+  "systemctl stop tailscaled"
+  "systemctl disable"
+  "systemctl mask"
+  # Package management
   "apt remove"
   "apt purge"
   "apt autoremove"
-  "systemctl disable"
-  "systemctl mask"
+  # Virtualisation
   "virsh destroy"
   "virsh undefine"
+  # Containers
   "docker system prune -a"
   "docker volume rm"
   "kubectl delete namespace"
+  # Storage
   "btrfs subvolume delete"
+  # Dangerous permission / cron changes
+  "chmod 777"
+  "crontab -r"
 )
 
 for pattern in "${BLOCKED_PATTERNS[@]}"; do

@@ -77,6 +77,11 @@ When delegating to a sub-agent:
 5. After completion, verify documentation in `local/docs/` was updated
 6. If not, update it yourself
 7. Append to `local/docs/changelog.md`
+8. **Self-check** — Before reporting completion, verify:
+   - `local/docs/changelog.md` has a new entry for this task
+   - Modified system files have corresponding doc updates in `local/docs/`
+   - If anything is missing → invoke the `doc-update` skill NOW before responding
+   - Check `local/logs/changed-files.log` for any un-documented modifications
 
 ## Error Handling
 

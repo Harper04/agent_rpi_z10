@@ -31,13 +31,19 @@ while IFS='=' read -r key value; do
   esac
 done
 
+# Safe .env loading (reads KEY=VALUE without executing shell code)
+_safe_read_env() {
+  local env_file="$1" key="$2"
+  grep -E "^${key}=" "$env_file" 2>/dev/null | head -1 | cut -d= -f2-
+}
+
 # Only handle github.com (extend for Gitea/Forgejo if needed)
 case "$HOST" in
   github.com|*.github.com) ;;
   *)
     # Unknown host — check for GITEA_TOKEN / FORGEJO_TOKEN pattern
     if [ -f "$ENV_FILE" ]; then
-      source "$ENV_FILE"
+      GITEA_TOKEN="$(_safe_read_env "$ENV_FILE" "GITEA_TOKEN")"
       if [ -n "${GITEA_TOKEN:-}" ]; then
         echo "protocol=$PROTOCOL"
         echo "host=$HOST"
@@ -56,7 +62,7 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 0
 fi
 
-source "$ENV_FILE"
+GITHUB_TOKEN="$(_safe_read_env "$ENV_FILE" "GITHUB_TOKEN")"
 
 if [ -z "${GITHUB_TOKEN:-}" ]; then
   exit 0

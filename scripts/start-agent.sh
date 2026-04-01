@@ -10,8 +10,10 @@
 
 set -uo pipefail
 
+# shellcheck source=lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
+
 SESSION="sysadmin-agent"
-REPO="/home/tomjaster/sysadmin-agent"
 
 setup_session() {
     echo "[$(date -Is)] Creating tmux session '${SESSION}'..."
@@ -28,7 +30,7 @@ setup_session() {
     tmux set-option -t "$SESSION" status-interval 10
     tmux set-option -t "$SESSION" status-style        "bg=colour235,fg=colour250"
     tmux set-option -t "$SESSION" status-left         "#[bold,fg=colour46] sysadmin-agent #[fg=colour244] │ "
-    tmux set-option -t "$SESSION" status-right        "#[fg=colour244]ziegeleiweg-pi │ #[fg=colour250]%H:%M "
+    tmux set-option -t "$SESSION" status-right        "#[fg=colour244]${HOSTNAME_SHORT} │ #[fg=colour250]%H:%M "
     tmux set-option -t "$SESSION" window-status-current-style "fg=colour46,bold"
     tmux set-option -t "$SESSION" pane-border-style   "fg=colour238"
     tmux set-option -t "$SESSION" pane-active-border-style "fg=colour46"
@@ -36,11 +38,11 @@ setup_session() {
 
     # Window 0: claude restart loop
     tmux send-keys -t "${SESSION}:agent" \
-        "bash ${REPO}/scripts/run-agent.sh" Enter
+        "bash ${REPO_ROOT}/scripts/run-agent.sh" Enter
 
     # Window 1: spare interactive shell
     tmux new-window -t "$SESSION" -n "shell"
-    tmux send-keys -t "${SESSION}:shell" "cd ${REPO}" Enter
+    tmux send-keys -t "${SESSION}:shell" "cd ${REPO_ROOT}" Enter
 
     # Focus agent window
     tmux select-window -t "${SESSION}:agent"

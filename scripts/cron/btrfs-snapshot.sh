@@ -13,36 +13,18 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-ENV_FILE="${REPO_ROOT}/local/.env"
-LOG_DIR="${REPO_ROOT}/local/logs"
+# shellcheck source=../lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
+
 LOG_FILE="${LOG_DIR}/btrfs-snapshot.log"
 
 SNAPSHOT_DIR="${BTRFS_SNAPSHOT_DIR:-/.snapshots}"
 RETAIN_DAYS="${BTRFS_SNAPSHOT_RETAIN_DAYS:-30}"
-HOSTNAME_SHORT="$(hostname -s)"
 
 # ── Load env (Telegram credentials, overrides) ───────────────────────────────
-if [[ -f "$ENV_FILE" ]]; then
-    set -a
-    # shellcheck source=/dev/null
-    source "$ENV_FILE"
-    set +a
-fi
+safe_source
 
-mkdir -p "$LOG_DIR"
-
-stamp()  { date '+%Y-%m-%d %H:%M:%S'; }
 log()    { echo "[$(stamp)] $1" | tee -a "$LOG_FILE"; }
-
-telegram_alert() {
-    [[ -z "${TELEGRAM_BOT_TOKEN:-}" || -z "${TELEGRAM_CHAT_ID:-}" ]] && return
-    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -d chat_id="$TELEGRAM_CHAT_ID" \
-        -d parse_mode="Markdown" \
-        -d text="$1" >/dev/null 2>&1 || true
-}
 
 # ── btrfs detection ───────────────────────────────────────────────────────────
 if ! findmnt -t btrfs / -n >/dev/null 2>&1; then
@@ -71,7 +53,7 @@ else
         log "Snapshot created successfully: ${SNAPSHOT_NAME}"
     else
         log "ERROR: Failed to create snapshot ${SNAPSHOT_PATH}"
-        telegram_alert "❌ *btrfs snapshot FAILED* on \`${HOSTNAME_SHORT}\`\nCould not create \`${SNAPSHOT_NAME}\`\nCheck: \`${LOG_FILE}\`"
+        telegram_send "❌ *btrfs snapshot FAILED* on \`${HOSTNAME_SHORT}\`\nCould not create \`${SNAPSHOT_NAME}\`\nCheck: \`${LOG_FILE}\`"
         exit 1
     fi
 fi
@@ -105,7 +87,7 @@ for snapshot_path in "${ALL_SNAPSHOTS[@]}"; do
             PRUNED=$(( PRUNED + 1 ))
         else
             log "WARNING: Failed to delete ${snapshot_path}"
-            telegram_alert "⚠️ *btrfs prune warning* on \`${HOSTNAME_SHORT}\`\nFailed to delete \`${snapshot_name}\`\nCheck: \`${LOG_FILE}\`"
+            telegram_send "⚠️ *btrfs prune warning* on \`${HOSTNAME_SHORT}\`\nFailed to delete \`${snapshot_name}\`\nCheck: \`${LOG_FILE}\`"
         fi
     fi
 done
