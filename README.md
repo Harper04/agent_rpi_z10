@@ -48,7 +48,18 @@ git push -u origin main
 
 Erstelle `sysadmin-rpi5-dad` — **komplett leer** (keine README, kein .gitignore).
 
-### 4. Auf der Maschine
+### 4. Voraussetzungen auf der Maschine
+
+```bash
+# Systempakete (Debian/Ubuntu)
+sudo apt install -y git curl jq unzip
+```
+
+[Claude Code](https://docs.anthropic.com/claude-code) installieren (falls noch nicht vorhanden).
+
+`bun` wird von `setup.sh` automatisch installiert — es wird vom Telegram-Channel-MCP-Plugin benötigt.
+
+### 5. Auf der Maschine
 
 ```bash
 # Template klonen (mit Token geht das erstmal ohne Auth, da public)
@@ -59,12 +70,18 @@ cd ~/sysadmin-agent
 ./setup.sh \
   --origin https://github.com/you/sysadmin-rpi5-dad.git \
   --token github_pat_XXXXXXXXXXXX
+# → installiert bun (Telegram MCP-Runtime)
+# → installiert das Claude Code Telegram-Plugin
+# → konfiguriert Git-Credential-Helper, seeded local/
 
 # Zum Maschinen-Repo pushen (Token wird automatisch aus local/.env gelesen)
 git push -u origin main
 
 # Telegram konfigurieren
 nano local/.env   # TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID eintragen
+
+# Shell neu laden (bun in PATH aufnehmen)
+source ~/.bashrc
 
 # Agent starten
 claude --agent orchestrator
@@ -81,6 +98,21 @@ claude --agent orchestrator
    - Kein Token in URLs, kein Token in globaler Git-Config
    - Funktioniert nur in diesem Repo
 5. `local/` wird aus `templates/local/` geseeded, Maschinendaten eingetragen
+6. **`bun`** wird installiert (falls nicht vorhanden) — Runtime für das Telegram-MCP-Plugin
+7. **Claude Code Telegram-Plugin** wird installiert (`telegram@claude-plugins-official`)
+
+### Telegram Channel MCP
+
+Das Telegram-Plugin läuft als lokaler MCP-Server via `bun`. Ohne `bun` startet der Channel nicht und Claude Code zeigt `channel/mcp failed` in den Logs.
+
+Manuell nachholen (falls setup.sh übersprungen):
+```bash
+# bun installieren
+curl -fsSL https://bun.sh/install | bash && source ~/.bashrc
+
+# Plugin installieren
+claude plugin install telegram@claude-plugins-official
+```
 
 ### Token-Sicherheit
 
