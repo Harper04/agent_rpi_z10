@@ -146,6 +146,7 @@ When receiving a task (via Telegram or direct CLI):
 
 | Schedule         | Task                      | Agent           |
 |------------------|---------------------------|-----------------|
+| Daily 02:00      | btrfs snapshot + prune    | backup          |
 | Daily 03:00      | Security updates check    | system-updater  |
 | Weekly Sun 04:00 | Full system upgrade       | system-updater  |
 | Daily 06:00      | Health check all services | orchestrator    |

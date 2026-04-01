@@ -18,3 +18,6 @@ PATH=/usr/local/bin:/usr/bin:/bin
 
 # Weekly Monday 05:00 — Full inventory refresh
 0 5 * * 1    /home/tom/sysadmin-agent/scripts/cron/cron-runner.sh "inventory"
+
+# Daily 02:00 — btrfs snapshot + 30-day retention (no-op on non-btrfs systems)
+0 2 * * *    /home/tom/sysadmin-agent/scripts/cron/btrfs-snapshot.sh
