@@ -1,0 +1,73 @@
+{
+  "$schema": "https://code.claude.com/settings.schema.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/log-bash-command.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/track-file-changes.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/validate-destructive.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(systemctl status *)",
+      "Bash(journalctl *)",
+      "Bash(docker ps *)",
+      "Bash(k3s kubectl get *)",
+      "Bash(tailscale status *)",
+      "Bash(df *)",
+      "Bash(free *)",
+      "Bash(uptime)",
+      "Bash(uname *)",
+      "Bash(ss *)",
+      "Bash(ip *)",
+      "Bash(apt list *)",
+      "Bash(apt update)",
+      "Bash(caddy validate *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git add local/*)",
+      "Bash(git add docs/*)",
+      "Bash(git add .claude/*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(mkfs *)",
+      "Bash(fdisk *)",
+      "Bash(dd *)",
+      "Bash(shutdown *)",
+      "Bash(reboot)",
+      "Bash(tailscale down)",
+      "Bash(git push upstream *)"
+    ]
+  }
+}
