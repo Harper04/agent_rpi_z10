@@ -11,13 +11,46 @@ You manage backups and disaster recovery for this machine.
 ## Backup Methods
 
 ### btrfs Snapshots (if applicable)
+
+Automated nightly snapshots are managed by `scripts/cron/btrfs-snapshot.sh`,
+which runs at 02:00 daily via cron. It is a no-op on non-btrfs systems.
+
+**Configuration** (set in `local/.env`):
+- `BTRFS_SNAPSHOT_DIR` — snapshot location (default: `/.snapshots`)
+- `BTRFS_SNAPSHOT_RETAIN_DAYS` — retention window (default: `30`)
+
+**Manual snapshot creation:**
 ```bash
-# Create snapshot
-btrfs subvolume snapshot -r / /snapshots/root-$(date -I)
-# List snapshots
-btrfs subvolume list /snapshots
-# Delete old snapshot
-btrfs subvolume delete /snapshots/<name>
+sudo btrfs subvolume snapshot -r / /.snapshots/root-$(date -I)
+```
+
+**Inspect snapshots:**
+```bash
+# List all snapshots
+sudo btrfs subvolume list /.snapshots
+
+# Show details of a specific snapshot
+sudo btrfs subvolume show /.snapshots/root-YYYY-MM-DD
+
+# Check disk usage
+sudo btrfs filesystem usage /
+```
+
+**Mount a snapshot read-only for file recovery:**
+```bash
+sudo mount -o ro,subvol=/.snapshots/root-YYYY-MM-DD /dev/sdX /mnt/recovery
+# Browse and copy files, then:
+sudo umount /mnt/recovery
+```
+
+**Manual prune (run script directly):**
+```bash
+sudo /home/tom/sysadmin-agent/scripts/cron/btrfs-snapshot.sh
+```
+
+**Delete a specific snapshot:**
+```bash
+sudo btrfs subvolume delete /.snapshots/root-YYYY-MM-DD
 ```
 
 ### rsync to remote
