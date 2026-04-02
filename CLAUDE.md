@@ -61,18 +61,26 @@ There is ONE template repo and N machine repos. No GitHub forks needed.
 
 **Setup per machine (HTTPS + fine-grained PAT, no fork, no SSH key):**
 ```bash
-git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
+git clone https://github.com/harper04/agent-sysadmin.git ~/sysadmin-agent
 cd ~/sysadmin-agent
-./setup.sh --origin https://github.com/you/sysadmin-rpi5-dad.git --token github_pat_XXXX
+./setup.sh --origin https://github.com/harper04/sysadmin-rpi5-dad.git --token github_pat_XXXX
 # → stores token in local/.env, configures per-repo credential helper
 # → renames clone remote to 'upstream', sets machine repo as 'origin'
 # → seeds local/ from templates/local/, fills machine identity
+# → configures Claude Code onboarding (OAuth token, .claude.json)
 git push -u origin main
 ```
 
+**Claude Code onboarding (handled by setup.sh):**
+- Obtain an OAuth token on another machine: `claude setup-token`
+- `setup.sh` writes `export CLAUDE_CODE_OAUTH_TOKEN=<token>` to `~/.bashrc`
+- `setup.sh` ensures `~/.claude.json` contains `hasCompletedOnboarding: true`
+- After setup, run `source ~/.bashrc` to load the token into your shell
+
 **Authentication:**
-- Token lives in `local/.env` (gitignored, never committed)
+- GitHub token lives in `local/.env` (gitignored, never committed)
 - Per-repo credential helper reads token at push/pull time
+- Claude Code OAuth token lives in `~/.bashrc` as an env export
 - No token in URLs, no global git config, no SSH keys needed
 
 **Rules:**
