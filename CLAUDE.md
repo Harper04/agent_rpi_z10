@@ -115,9 +115,10 @@ git push -u origin main
 │   ├── commands/            ← shared slash commands
 │   └── settings.json        ← shared base settings
 ├── scripts/
+│   ├── agent/               ← agent lifecycle (start, run, systemd service)
 │   ├── hooks/               ← shared hook implementations
-│   ├── telegram-bot/        ← shared Telegram integration
 │   ├── cron/                ← shared scheduled task scripts
+│   ├── lib/                 ← shared shell library (common.sh)
 │   └── git/                 ← upstream sync & contribute scripts
 ├── docs/
 │   ├── apps/_template.md    ← shared template for app docs

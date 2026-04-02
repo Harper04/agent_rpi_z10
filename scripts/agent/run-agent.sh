@@ -5,7 +5,7 @@
 set -uo pipefail
 
 # shellcheck source=lib/common.sh
-source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
 cd "$REPO_ROOT"
 
 # Load secrets into environment
