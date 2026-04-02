@@ -22,7 +22,14 @@ if [[ -f "$PIDFILE" ]]; then
     fi
 fi
 echo $$ > "$PIDFILE"
+
 trap 'rm -f "$PIDFILE"' EXIT
+
+# ── Telegram plugin: agent-only ──────────────────────────────────────────────
+# The plugin is NOT in .claude/settings.json (shared) — that would give every
+# manual claude session a competing Telegram poller. Instead we pass it via
+# --settings on the agent's claude invocation only.
+AGENT_SETTINGS='{"enabledPlugins":{"telegram@claude-plugins-official":true}}'
 
 # ── Ensure Telegram plugin can read its token ─────────────────────────────────
 # Plugin-spawned MCP servers don't inherit the parent env block, so the plugin
@@ -103,9 +110,9 @@ while true; do
 
     START_TS=$(date +%s)
     # Run claude against the tmux PTY so it detects an interactive terminal.
-    # Wrapper log messages are written via log(); tmux pipe-pane (set up in
-    # start-agent.sh) captures the full window output to the log file.
-    claude --dangerously-skip-permissions || true
+    # --settings enables Telegram plugin for this invocation only (not in
+    # project settings, so manual claude sessions don't get a competing poller).
+    claude --dangerously-skip-permissions --settings "$AGENT_SETTINGS" || true
     EXIT_CODE=$?
     END_TS=$(date +%s)
     UPTIME=$(( END_TS - START_TS ))

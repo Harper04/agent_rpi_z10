@@ -15,11 +15,21 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
 
 SESSION="sysadmin-agent"
 
+# ── Cleanup: kill tmux session and orphaned telegram plugin processes ─────────
+cleanup() {
+    echo "[$(date -Is)] Shutting down agent session..."
+    tmux kill-session -t "$SESSION" 2>/dev/null || true
+    pkill -f "bun.*telegram.*server.ts" 2>/dev/null || true
+    exit 0
+}
+trap cleanup SIGTERM SIGINT SIGHUP EXIT
+
 setup_session() {
     echo "[$(date -Is)] Creating tmux session '${SESSION}'..."
 
-    # Fresh start
+    # Fresh start — kill old session and any orphaned telegram plugin processes
     tmux kill-session -t "$SESSION" 2>/dev/null || true
+    pkill -f "bun.*telegram.*server.ts" 2>/dev/null || true
     sleep 1
 
     # Create session with agent window (detached, sized for readability)
