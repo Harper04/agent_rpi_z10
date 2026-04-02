@@ -112,7 +112,12 @@ while true; do
     # Run claude against the tmux PTY so it detects an interactive terminal.
     # --settings enables Telegram plugin for this invocation only (not in
     # project settings, so manual claude sessions don't get a competing poller).
-    claude --dangerously-skip-permissions --settings "$AGENT_SETTINGS" || true
+    # --channels registers the plugin as a channel source so inbound Telegram
+    # messages are injected into the session as conversation triggers.
+    claude --agent orchestrator --dangerously-skip-permissions \
+      --settings "$AGENT_SETTINGS" \
+      --channels "plugin:telegram@claude-plugins-official" \
+      || true
     EXIT_CODE=$?
     END_TS=$(date +%s)
     UPTIME=$(( END_TS - START_TS ))
