@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-04-02 19:05 — orchestrator
+
+**Action:** Post-wizard hardening of AdGuard Home, firewall cleanup
+**Reason:** Setup wizard completed by operator; applied security hardening and fixed port mismatch
+**Files changed:**
+- `/opt/adguardhome/conf/AdGuardHome.yaml` — cache 10MB, min TTL 300s, DNSSEC on, safebrowsing on (backup at `.bak.2026-04-02`)
+- ufw: removed stale 3000/tcp rule, added 80/tcp (AGH wizard moved UI from 3000→80)
+- `local/docs/apps/podman/adguard-home.md` — updated ports, security state, TODOs
+- `local/CLAUDE.local.md` — updated status and ports
+**Verification:** `dig @178.104.28.233 example.com` → resolves; `curl http://178.104.28.233:80/` → HTTP 302; service active
+**Upstream proposed:** no (machine-specific config)
+
+---
+
 ## 2026-04-02 18:54 — orchestrator
 
 **Action:** Installed AdGuard Home via Podman Quadlet, enabled ufw firewall

@@ -32,7 +32,7 @@
 | App              | Agent        | Status      |
 |------------------|--------------|-------------|
 | route53-dns      | orchestrator | configured  |
-| adguard-home     | orchestrator | installed (setup wizard pending) |
+| adguard-home     | orchestrator | running                         |
 
 ## Local Overrides
 
@@ -48,7 +48,7 @@
 | Port   | Service          | Reason for non-default |
 |--------|------------------|------------------------|
 | 53     | AdGuard Home DNS | Public DNS service     |
-| 3000   | AdGuard Home UI  | Temporary, until Caddy |
+| 80     | AdGuard Home UI  | Temporary, until Caddy |
 
 ### Local Agents
 

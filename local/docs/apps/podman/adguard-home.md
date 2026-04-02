@@ -1,7 +1,7 @@
 # AdGuard Home
 
 > **Method:** Podman (Quadlet)
-> **Status:** Installed (setup wizard pending)
+> **Status:** Running (hardened, allowed_clients pending)
 > **Agent:** orchestrator
 > **Last verified:** 2026-04-02
 > **Recipe:** `docs/recipes/adguard-home.md`
@@ -19,7 +19,7 @@ Home network AGH instances sync configuration from this instance.
 | Tag       | `latest`                                                   |
 | Digest    | `sha256:7fbf01d73ecb7a32d2d9e6cef8bf88e64bd787889ca80a1e8bce30cd4c084442` |
 | Pulled    | 2026-04-02                                                 |
-| AGH ver   | TBD (after setup wizard)                                   |
+| AGH ver   | schema_version 33                                          |
 
 ## Runtime
 
@@ -37,8 +37,8 @@ Home network AGH instances sync configuration from this instance.
 
 | Port | Protocol | Binding         | Purpose              |
 |------|----------|-----------------|----------------------|
-| 53   | tcp+udp  | 178.104.28.233  | DNS (after wizard)   |
-| 3000 | tcp      | 0.0.0.0         | Web UI (temporary)   |
+| 53   | tcp+udp  | 178.104.28.233  | DNS                  |
+| 80   | tcp      | 0.0.0.0         | Web UI (until Caddy) |
 
 ## Firewall (ufw)
 
@@ -46,14 +46,18 @@ Home network AGH instances sync configuration from this instance.
 |------------|---------|
 | 22/tcp     | allowed (SSH) |
 | 53/tcp+udp | allowed (DNS) |
-| 3000/tcp   | allowed (temporary, remove after Caddy) |
+| 80/tcp     | allowed (Web UI, until Caddy) |
 
 ## Security Notes
 
-- **allowed_clients** must be configured after setup wizard to prevent open resolver
-- **rate limiting** (30 qps) to be set in AGH config
-- **refuse_any: true** to prevent DNS amplification
-- Port 3000 is publicly accessible until Caddy + caddy-security is deployed
+- **allowed_clients: []** (empty = open resolver!) — MUST add home IPs before production use
+- **ratelimit: 20** qps per client subnet — active
+- **refuse_any: true** — active, prevents DNS amplification
+- **DNSSEC: enabled** — validates upstream responses
+- **safebrowsing: enabled** — blocks known malicious domains
+- **cache: 10 MB, min TTL 300s** — reduces upstream queries
+- **upstream: Quad9 DoH** (`dns10.quad9.net`) — encrypted, malware-blocking
+- Port 80 (Web UI) publicly accessible until Caddy + caddy-security
 
 ## Update Procedure
 
@@ -74,13 +78,15 @@ podman auto-update
 
 ## TODO
 
-- [ ] Complete setup wizard at http://178.104.28.233:3000
-- [ ] Configure DNS bind to 178.104.28.233 (not 0.0.0.0)
-- [ ] Set allowed_clients whitelist
-- [ ] Enable rate limiting
-- [ ] Add filter lists
+- [x] Complete setup wizard
+- [x] Configure DNS bind to 178.104.28.233
+- [x] Enable rate limiting (20 qps)
+- [x] Enable DNSSEC, safebrowsing, refuse_any
+- [x] Increase cache (10 MB, 300s min TTL)
+- [ ] **Set allowed_clients whitelist (⚠️ currently open resolver!)**
 - [ ] Set up Caddy reverse proxy with caddy-security
-- [ ] Remove ufw rule for port 3000 after Caddy
+- [ ] Remove ufw rule for port 80 after Caddy
+- [ ] Add more filter lists (OISD, etc.)
 - [ ] Configure downstream sync for home AGH instances
 - [ ] Add to backup schedule
 - [ ] Enable DoH/DoT (optional)
