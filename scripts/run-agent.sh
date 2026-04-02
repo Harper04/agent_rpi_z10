@@ -7,12 +7,39 @@ set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
 
+# ── Single-instance lock ──────────────────────────────────────────────────────
+PIDFILE="${REPO}/local/logs/run-agent.pid"
+mkdir -p "${REPO}/local/logs"
+
+if [[ -f "$PIDFILE" ]]; then
+    old_pid=$(<"$PIDFILE")
+    if kill -0 "$old_pid" 2>/dev/null; then
+        echo "[$(date -Is)] Another run-agent.sh is already running (PID $old_pid). Exiting."
+        exit 1
+    fi
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
 # Load secrets into environment
 if [[ -f local/.env ]]; then
     set -a
     # shellcheck source=/dev/null
     source local/.env
     set +a
+fi
+
+# ── Ensure Telegram plugin can read its token ─────────────────────────────────
+# Plugin-spawned MCP servers don't inherit the parent env block, so the plugin
+# reads its token from ~/.claude/channels/telegram/.env. Sync it from local/.env
+# if missing so the plugin always starts correctly.
+TELE_ENV="${HOME}/.claude/channels/telegram/.env"
+if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]]; then
+    mkdir -p "$(dirname "$TELE_ENV")"
+    if ! grep -q "TELEGRAM_BOT_TOKEN=" "$TELE_ENV" 2>/dev/null; then
+        printf 'TELEGRAM_BOT_TOKEN=%s\n' "$TELEGRAM_BOT_TOKEN" >> "$TELE_ENV"
+        chmod 600 "$TELE_ENV"
+    fi
 fi
 
 GREEN='\033[1;32m'
@@ -84,6 +111,9 @@ STABLE_UPTIME_SECS=30
 
 ATTEMPT=0
 CONSECUTIVE_FAILURES=0
+
+# ── Startup notification ──────────────────────────────────────────────────────
+telegram_alert "🟢 *sysadmin-agent* started on \`$(hostname)\` ($(date '+%Y-%m-%d %H:%M UTC'))"
 
 while true; do
     ATTEMPT=$((ATTEMPT + 1))
