@@ -1,6 +1,6 @@
 # ZeroTier
 
-> **Status:** ⚠️ Awaiting network authorization
+> **Status:** ✅ Running (authorized)
 > **Last verified:** 2026-04-02
 > **Managed by agent:** `orchestrator`
 > **Installation method:** `apt` (official ZeroTier repo)

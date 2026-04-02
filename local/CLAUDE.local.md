@@ -26,7 +26,7 @@
 
 | App              | Agent        | Status  |
 |------------------|--------------|---------|
-| ZeroTier         | orchestrator | ⚠️ Awaiting auth |
+| ZeroTier         | orchestrator | ✅ Running |
 | UniFi OS Server  | orchestrator | ✅ Running |
 | Home Assistant   | orchestrator | ✅ Running (KVM) |
 
