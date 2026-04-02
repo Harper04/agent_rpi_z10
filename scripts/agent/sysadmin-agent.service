@@ -1,0 +1,36 @@
+# Sysadmin Claude Agent — systemd unit template
+#
+# Placeholders (substituted by setup.sh):
+#   %USER%      — Linux user running the agent
+#   %REPO_PATH% — Absolute path to the sysadmin-agent repo
+#   %HOME%      — Home directory of %USER%
+#   %HOSTNAME%  — Machine hostname (cosmetic)
+#
+# Manual install:
+#   sed -e 's|%USER%|tom|g' -e 's|%REPO_PATH%|/home/tom/sysadmin-agent|g' \
+#       -e 's|%HOME%|/home/tom|g' -e 's|%HOSTNAME%|myhost|g' \
+#       scripts/agent/sysadmin-agent.service \
+#       | sudo tee /etc/systemd/system/sysadmin-agent.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sysadmin-agent
+#   loginctl enable-linger <user>
+
+[Unit]
+Description=Sysadmin Claude Agent (%HOSTNAME%)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%USER%
+WorkingDirectory=%REPO_PATH%
+EnvironmentFile=%REPO_PATH%/local/.env
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:%HOME%/.bun/bin:%HOME%/.local/bin
+ExecStart=%REPO_PATH%/scripts/agent/start-agent.sh
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=15
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

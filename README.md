@@ -84,15 +84,8 @@ cd ~/sysadmin-agent
 # Zum Maschinen-Repo pushen (Token wird automatisch aus local/.env gelesen)
 git push -u origin main
 
-# Telegram konfigurieren
-nano local/.env   # TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID eintragen
-
 # Shell neu laden (bun in PATH aufnehmen)
 source ~/.bashrc
-
-# Agent starten
-claude --agent orchestrator
-> /inventory
 ```
 
 ### Was passiert bei `setup.sh`?
@@ -108,11 +101,69 @@ claude --agent orchestrator
 6. **`bun`** wird installiert (falls nicht vorhanden) — Runtime für das Telegram-MCP-Plugin
 7. **Claude Code Telegram-Plugin** wird installiert (`telegram@claude-plugins-official`)
 
-### Telegram Channel MCP
+### 6. Telegram einrichten
 
-Das Telegram-Plugin läuft als lokaler MCP-Server via `bun`. Ohne `bun` startet der Channel nicht und Claude Code zeigt `channel/mcp failed` in den Logs.
+Der Agent wird über einen Telegram-Bot erreichbar. Die Einrichtung folgt dem
+offiziellen Plugin-Flow — `setup.sh` hat bun und das Plugin bereits installiert.
 
-Manuell nachholen (falls setup.sh übersprungen):
+#### a) Bot bei BotFather erstellen
+
+Öffne [@BotFather](https://t.me/BotFather) auf Telegram und sende `/newbot`.
+BotFather fragt nach:
+
+- **Name** — Anzeigename im Chat (frei wählbar, z.B. `Sysadmin RPi5`)
+- **Username** — eindeutiger Handle, muss auf `bot` enden (z.B. `sysadmin_rpi5_bot`)
+
+BotFather antwortet mit einem Token wie `123456789:AAHfiqksKZ8...` — das ist
+der vollständige Token inklusive führender Zahl und Doppelpunkt.
+
+#### b) Token hinterlegen
+
+In einer Claude Code Session (`claude`):
+
+```
+/telegram:configure 123456789:AAHfiqksKZ8...
+```
+
+Das schreibt `TELEGRAM_BOT_TOKEN=...` nach `~/.claude/channels/telegram/.env`.
+Alternativ kann man die Datei von Hand anlegen oder die Variable in der Shell
+setzen (Shell hat Vorrang).
+
+#### c) Agent mit Telegram-Channel starten
+
+```bash
+claude --channels plugin:telegram@claude-plugins-official --agent orchestrator
+```
+
+Ohne `--channels` verbindet sich das Plugin nicht — der Bot bleibt stumm.
+
+#### d) Pairing — eigene Telegram-ID verknüpfen
+
+Schreibe dem Bot eine DM auf Telegram. Er antwortet mit einem 6-stelligen
+Pairing-Code. In der laufenden Claude Code Session:
+
+```
+/telegram:access pair <code>
+```
+
+Danach kommen deine Nachrichten beim Agenten an.
+
+#### e) Zugriff absichern
+
+Pairing dient nur zur ID-Erfassung. Sobald du verknüpft bist, auf Allowlist
+umschalten, damit Fremde keine Pairing-Codes bekommen:
+
+```
+/telegram:access policy allowlist
+```
+
+> Telegram-Bots akzeptieren DMs sofort — ohne Allowlist könnte jeder den
+> Pairing-Flow starten.
+
+### Telegram manuell nachholen
+
+Falls `setup.sh` übersprungen wurde oder bun/Plugin fehlen:
+
 ```bash
 # bun installieren
 curl -fsSL https://bun.sh/install | bash && source ~/.bashrc
