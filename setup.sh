@@ -4,10 +4,10 @@
 # Uses HTTPS + fine-grained PAT (no SSH keys needed on headless machines).
 #
 # Quickstart:
-#   git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
+#   git clone https://github.com/harper04/agent-sysadmin.git ~/sysadmin-agent
 #   cd ~/sysadmin-agent
 #   ./setup.sh \
-#     --origin https://github.com/you/sysadmin-rpi5-dad.git \
+#     --origin https://github.com/harper04/sysadmin-rpi5-dad.git \
 #     --token github_pat_XXXX
 #
 # What this does:
@@ -50,15 +50,15 @@ Options:
   --force            Re-seed local/ even if it exists
 
 Example:
-  git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
+  git clone https://github.com/harper04/agent-sysadmin.git ~/sysadmin-agent
   cd ~/sysadmin-agent
   ./setup.sh \
-    --origin https://github.com/you/sysadmin-rpi5-dad.git \
+    --origin https://github.com/harper04/sysadmin-rpi5-dad.git \
     --token github_pat_XXXXXXXXXXXX
 
 Fine-grained PAT setup:
   https://github.com/settings/personal-access-tokens/new
-  → Only select repositories: sysadmin-agent + sysadmin-<machine>
+  → Only select repositories: agent-sysadmin + sysadmin-<machine>
   → Permissions: Contents (Read and write)
 EOF
       exit 0
@@ -92,6 +92,26 @@ if [ "$MISSING" = true ]; then
   exit 1
 fi
 
+# --- Install GitHub CLI (gh) ---
+echo ""
+echo "Checking GitHub CLI..."
+
+if command -v gh &>/dev/null; then
+  echo "  ✅ gh $(gh --version | head -1 | awk '{print $4}')"
+else
+  echo "  ℹ️  gh not found — installing GitHub CLI..."
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+  sudo apt update -qq && sudo apt install -y gh
+  if command -v gh &>/dev/null; then
+    echo "  ✅ gh $(gh --version | head -1 | awk '{print $4}') installed"
+  else
+    echo "  ⚠️  gh install failed — GitHub PR creation will not work"
+  fi
+fi
+
 # --- Install bun (required for Telegram channel MCP plugin) ---
 echo ""
 echo "Checking bun runtime..."
@@ -119,10 +139,50 @@ else
   echo "  ⚠️  claude not found (install before using agents)"
 fi
 
+# --- Claude Code onboarding (OAuth token + .claude.json) ---
+echo ""
+echo "Configuring Claude Code onboarding..."
+
+CLAUDE_JSON="$HOME/.claude.json"
+
+# Ensure hasCompletedOnboarding is set in ~/.claude.json
+if [ -f "$CLAUDE_JSON" ]; then
+  if jq -e '.hasCompletedOnboarding' "$CLAUDE_JSON" &>/dev/null; then
+    echo "  ℹ️  ~/.claude.json already has hasCompletedOnboarding"
+  else
+    jq '. + {"hasCompletedOnboarding": true}' "$CLAUDE_JSON" > "${CLAUDE_JSON}.tmp" && mv "${CLAUDE_JSON}.tmp" "$CLAUDE_JSON"
+    echo "  ✅ Added hasCompletedOnboarding: true to ~/.claude.json"
+  fi
+else
+  echo '{"hasCompletedOnboarding": true}' > "$CLAUDE_JSON"
+  echo "  ✅ Created ~/.claude.json with hasCompletedOnboarding: true"
+fi
+
+# Prompt for Claude Code OAuth token if not already in .bashrc
+if grep -q "CLAUDE_CODE_OAUTH_TOKEN" "$HOME/.bashrc" 2>/dev/null; then
+  echo "  ℹ️  CLAUDE_CODE_OAUTH_TOKEN already in ~/.bashrc"
+else
+  echo ""
+  echo "  Claude Code requires an OAuth token for headless operation."
+  echo "  On another machine with a browser, run:  claude setup-token"
+  echo "  Then paste the token here (or press Enter to skip for now):"
+  read -r -p "  CLAUDE_CODE_OAUTH_TOKEN= " CLAUDE_OAUTH_TOKEN
+  if [ -n "$CLAUDE_OAUTH_TOKEN" ]; then
+    echo "" >> "$HOME/.bashrc"
+    echo "# Claude Code OAuth token (headless auth)" >> "$HOME/.bashrc"
+    echo "export CLAUDE_CODE_OAUTH_TOKEN=\"$CLAUDE_OAUTH_TOKEN\"" >> "$HOME/.bashrc"
+    export CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_OAUTH_TOKEN"
+    echo "  ✅ CLAUDE_CODE_OAUTH_TOKEN added to ~/.bashrc and exported"
+  else
+    echo "  ⚠️  Skipped — add manually later:"
+    echo "     echo 'export CLAUDE_CODE_OAUTH_TOKEN=<token>' >> ~/.bashrc && source ~/.bashrc"
+  fi
+fi
+
 # --- Ensure git repo ---
 if [ ! -d .git ]; then
   echo "  ❌ Not a git repository. Clone the template first:"
-  echo "     git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent"
+  echo "     git clone https://github.com/harper04/agent-sysadmin.git ~/sysadmin-agent"
   exit 1
 fi
 
@@ -192,6 +252,13 @@ if [ -n "$GITHUB_TOKEN" ]; then
   if [ "$HTTP_CODE" = "200" ]; then
     GH_USER=$(jq -r '.login // "unknown"' <<< "$GH_BODY")
     echo "  ✅ Token valid — authenticated as: $GH_USER"
+
+    # Authenticate gh CLI with the same token
+    if command -v gh &>/dev/null; then
+      echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null \
+        && echo "  ✅ gh CLI authenticated as: $GH_USER" \
+        || echo "  ⚠️  gh auth failed — authenticate manually: gh auth login"
+    fi
   elif [ "$HTTP_CODE" = "401" ]; then
     echo "  ❌ Token invalid (HTTP 401). Check your PAT."
     echo "     Create a new one: https://github.com/settings/personal-access-tokens/new"
@@ -227,7 +294,7 @@ if [ -n "$ORIGIN_URL" ]; then
 else
   if ! git remote get-url upstream &>/dev/null; then
     echo "  ⚠️  No --origin given. On first run, provide:"
-    echo "     ./setup.sh --origin https://github.com/you/sysadmin-<machine>.git --token <pat>"
+    echo "     ./setup.sh --origin https://github.com/harper04/sysadmin-<machine>.git --token <pat>"
   fi
 fi
 
@@ -355,10 +422,14 @@ echo "======================================"
 echo "✅ Setup complete for $HOST!"
 echo ""
 echo "Next steps:"
-echo "  1. nano local/.env                                            # Add Telegram credentials"
-echo "  2. git push -u origin main                                    # Push to machine repo"
-echo "  3. source ~/.bashrc                                           # Reload PATH (includes bun)"
-echo "  4. claude --agent orchestrator                                # Start agent"
+echo "  1. git push -u origin main                                    # Push to machine repo"
+echo "  2. source ~/.bashrc                                           # Reload PATH + Claude OAuth token"
+echo "  3. claude                                                     # Start a Claude Code session"
+echo "     > /telegram:configure <BOT_TOKEN>                          # Paste BotFather token"
+echo "  4. claude --channels plugin:telegram@claude-plugins-official --agent orchestrator"
+echo "     # DM the bot on Telegram → get pairing code"
+echo "     > /telegram:access pair <code>                             # Link your Telegram ID"
+echo "     > /telegram:access policy allowlist                        # Lock down access"
 echo "     > /inventory                                               # First system scan"
 echo ""
 echo "Token management:"
