@@ -18,10 +18,12 @@
 #   5. Seeds local/ from templates/local/ with machine identity
 #
 # Options:
-#   --origin <url>     Machine-specific repo URL (HTTPS)
-#   --token <pat>      GitHub fine-grained PAT (stored in local/.env only)
-#   --name <hostname>  Override auto-detected hostname
-#   --force            Re-seed local/ from templates even if it exists
+#   --origin <url>            Machine-specific repo URL (HTTPS)
+#   --token <pat>             GitHub fine-grained PAT (stored in local/.env only)
+#   --telegram-token <token>  Telegram bot token (from @BotFather)
+#   --name <hostname>         Override auto-detected hostname
+#   --start                   Enable and start systemd service after setup
+#   --force                   Re-seed local/ from templates even if it exists
 
 set -euo pipefail
 
@@ -31,23 +33,29 @@ cd "$SCRIPT_DIR"
 ORIGIN_URL=""
 GITHUB_TOKEN=""
 HOSTNAME_OVERRIDE=""
+TELEGRAM_TOKEN=""
 FORCE=false
+START=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --origin)  ORIGIN_URL="$2"; shift 2 ;;
-    --token)   GITHUB_TOKEN="$2"; shift 2 ;;
-    --name)    HOSTNAME_OVERRIDE="$2"; shift 2 ;;
-    --force)   FORCE=true; shift ;;
+    --origin)          ORIGIN_URL="$2"; shift 2 ;;
+    --token)           GITHUB_TOKEN="$2"; shift 2 ;;
+    --name)            HOSTNAME_OVERRIDE="$2"; shift 2 ;;
+    --telegram-token)  TELEGRAM_TOKEN="$2"; shift 2 ;;
+    --start)           START=true; shift ;;
+    --force)           FORCE=true; shift ;;
     -h|--help)
       cat <<'EOF'
 Usage: ./setup.sh --origin <machine-repo-url> --token <github-pat> [options]
 
 Options:
-  --origin <url>     Machine repo URL (HTTPS, required on first run)
-  --token <pat>      GitHub fine-grained PAT (stored in local/.env)
-  --name <hostname>  Override auto-detected hostname
-  --force            Re-seed local/ even if it exists
+  --origin <url>            Machine repo URL (HTTPS, required on first run)
+  --token <pat>             GitHub fine-grained PAT (stored in local/.env)
+  --telegram-token <token>  Telegram bot token (from @BotFather)
+  --name <hostname>         Override auto-detected hostname
+  --start                   Enable and start systemd service after setup
+  --force                   Re-seed local/ even if it exists
 
 Example:
   git clone https://github.com/harper04/agent-sysadmin.git ~/sysadmin-agent
@@ -223,6 +231,33 @@ if [ -n "$GITHUB_TOKEN" ]; then
   unset HISTFILE 2>/dev/null || true
 fi
 
+# --- Store Telegram token ---
+if [ -n "$TELEGRAM_TOKEN" ]; then
+  echo ""
+  echo "Storing Telegram bot token..."
+
+  # Write to local/.env
+  if [ -f local/.env ]; then
+    if grep -q "^TELEGRAM_BOT_TOKEN=" local/.env; then
+      sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN|" local/.env
+    else
+      echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN" >> local/.env
+    fi
+  fi
+
+  # Sync to ~/.claude/channels/telegram/.env (where the MCP plugin reads it)
+  TELE_ENV="${HOME}/.claude/channels/telegram/.env"
+  mkdir -p "$(dirname "$TELE_ENV")"
+  if grep -q "TELEGRAM_BOT_TOKEN=" "$TELE_ENV" 2>/dev/null; then
+    sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN|" "$TELE_ENV"
+  else
+    printf 'TELEGRAM_BOT_TOKEN=%s\n' "$TELEGRAM_TOKEN" >> "$TELE_ENV"
+  fi
+  chmod 600 "$TELE_ENV"
+
+  echo "  ✅ Telegram token stored in local/.env and ~/.claude/channels/telegram/.env"
+fi
+
 # --- Configure git credential helper ---
 echo ""
 echo "Configuring git credential helper..."
@@ -378,7 +413,7 @@ REPO_PATH="$(pwd)"
 
 if [ -f "$CRONTAB_EXAMPLE" ]; then
   # Build the new entries with correct repo path substituted
-  NEW_ENTRIES=$(sed "s|/home/tom/sysadmin-agent|${REPO_PATH}|g" "$CRONTAB_EXAMPLE")
+  NEW_ENTRIES=$(sed "s|%REPO_PATH%|${REPO_PATH}|g" "$CRONTAB_EXAMPLE")
 
   # Get existing crontab (empty string if none)
   EXISTING=$(crontab -l 2>/dev/null || true)
@@ -413,6 +448,41 @@ else
   echo "  ⚠️  $CRONTAB_EXAMPLE not found — skipping"
 fi
 
+# --- Install systemd service ---
+echo ""
+echo "Installing systemd service..."
+
+SERVICE_TEMPLATE="scripts/agent/sysadmin-agent.service"
+SERVICE_TARGET="/etc/systemd/system/sysadmin-agent.service"
+
+if [ -f "$SERVICE_TEMPLATE" ]; then
+  sed -e "s|%USER%|$USER|g" \
+      -e "s|%REPO_PATH%|${REPO_PATH}|g" \
+      -e "s|%HOME%|$HOME|g" \
+      -e "s|%HOSTNAME%|$HOST|g" \
+      "$SERVICE_TEMPLATE" > /tmp/sysadmin-agent.service
+
+  if sudo -n true 2>/dev/null; then
+    sudo cp /tmp/sysadmin-agent.service "$SERVICE_TARGET"
+    sudo systemctl daemon-reload
+    sudo systemctl enable sysadmin-agent
+    loginctl enable-linger "$USER" 2>/dev/null || true
+    echo "  ✅ systemd service installed and enabled"
+    if [ "$START" = true ]; then
+      sudo systemctl start sysadmin-agent
+      echo "  ✅ sysadmin-agent started"
+    fi
+  else
+    echo "  ⚠️  No passwordless sudo — install manually:"
+    echo "     sudo cp /tmp/sysadmin-agent.service $SERVICE_TARGET"
+    echo "     sudo systemctl daemon-reload && sudo systemctl enable --now sysadmin-agent"
+    echo "     loginctl enable-linger $USER"
+  fi
+  rm -f /tmp/sysadmin-agent.service
+else
+  echo "  ⚠️  $SERVICE_TEMPLATE not found — skipping"
+fi
+
 # --- Initial commit ---
 git add -A
 git commit -m "chore: initialize sysadmin-agent for $HOST" 2>/dev/null || true
@@ -424,16 +494,25 @@ echo ""
 echo "Next steps:"
 echo "  1. git push -u origin main                                    # Push to machine repo"
 echo "  2. source ~/.bashrc                                           # Reload PATH + Claude OAuth token"
-echo "  3. claude                                                     # Start a Claude Code session"
-echo "     > /telegram:configure <BOT_TOKEN>                          # Paste BotFather token"
-echo "  4. claude --channels plugin:telegram@claude-plugins-official --agent orchestrator"
-echo "     # DM the bot on Telegram → get pairing code"
+if [ "$START" = true ]; then
+echo "  3. Agent is running! Pair Telegram:"
+else
+echo "  3. Start the agent:"
+echo "     sudo systemctl start sysadmin-agent"
+echo "  4. Pair Telegram:"
+fi
+echo "     - DM the bot on Telegram → get pairing code"
+echo "     - tmux attach -t sysadmin-agent"
 echo "     > /telegram:access pair <code>                             # Link your Telegram ID"
 echo "     > /telegram:access policy allowlist                        # Lock down access"
 echo "     > /inventory                                               # First system scan"
 echo ""
+echo "Service management:"
+echo "  - Status:  systemctl status sysadmin-agent"
+echo "  - Logs:    journalctl -u sysadmin-agent -f"
+echo "  - Attach:  tmux attach -t sysadmin-agent"
+echo ""
 echo "Token management:"
-echo "  - Token is in local/.env (never committed, never in URLs)"
+echo "  - GitHub token: local/.env (never committed, never in URLs)"
 echo "  - Rotate: update GITHUB_TOKEN in local/.env"
-echo "  - Verify: curl -H 'Authorization: Bearer <token>' https://api.github.com/user"
 echo ""

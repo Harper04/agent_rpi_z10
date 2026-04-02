@@ -11,7 +11,7 @@
 set -uo pipefail
 
 # shellcheck source=lib/common.sh
-source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
 
 SESSION="sysadmin-agent"
 
@@ -48,7 +48,7 @@ setup_session() {
 
     # Window 0: claude restart loop
     tmux send-keys -t "${SESSION}:agent" \
-        "bash ${REPO_ROOT}/scripts/run-agent.sh" Enter
+        "bash ${REPO_ROOT}/scripts/agent/run-agent.sh" Enter
 
     # Capture all agent-window output to log file (without breaking PTY)
     mkdir -p "${REPO_ROOT}/local/logs"
