@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-04-02 13:27 — orchestrator
+
+**Action:** Created route53-dns service — file-based DNS record management for AWS Route53
+**Reason:** Need declarative DNS management with owner tags for shared hosted zones
+**Files changed:**
+- `scripts/dns/dns-sync.sh` — sync engine (shared)
+- `.claude/skills/dns-record.md` — agent skill for add/remove/list/diff/sync
+- `.claude/commands/dns.md` — `/dns` slash command
+- `docs/recipes/route53-dns.md` — installation recipe (shared)
+- `local/dns/dns.conf` — machine config (owner tag, default TTL)
+- `local/dns/records/` — record file directory (empty, ready)
+- `local/docs/apps/apt/route53-dns.md` — app documentation
+- `local/CLAUDE.local.md` — added route53-dns to installed apps
+- `local/docs/system/packages.md` — added aws-cli
+- Installed: `aws-cli` 2.34.22 (snap)
+**Verification:** `aws --version` returns 2.34.22, script parses correctly
+**Upstream proposed:** yes (shared files: script, skill, command, recipe)
+
+---
+
 ## 2026-04-02 13:00 — orchestrator
 
 **Action:** Installed GitHub CLI (`gh` 2.89.0) and added to setup.sh

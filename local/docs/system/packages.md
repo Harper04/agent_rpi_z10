@@ -21,6 +21,7 @@
 | openssl            | 3.0.13-0ubuntu3.6           | TLS/crypto library         | No    |
 | unattended-upgrades| 2.9.1+nmu4ubuntu1           | Auto security updates      | No    |
 | gh                 | 2.89.0                       | GitHub CLI                 | No    |
+| aws-cli (snap)     | 2.34.22                      | AWS CLI for Route53        | No    |
 | snapd              | 2.72+ubuntu24.04            | Snap package manager       | No    |
 
 ## Held Packages

@@ -31,7 +31,7 @@
 
 | App              | Agent        | Status      |
 |------------------|--------------|-------------|
-| (none yet)       | —            | —           |
+| route53-dns      | orchestrator | configured  |
 
 ## Local Overrides
 
