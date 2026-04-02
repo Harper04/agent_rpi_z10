@@ -2,6 +2,13 @@
 
 Claude Code als autonomer Linux-System-Operator — erreichbar via Telegram.
 
+## Unterstützte Plattformen
+
+- **OS:** Debian 12+ / Ubuntu 22.04+
+- **Architektur:** amd64, arm64
+- **Init:** systemd
+- **Paketmanager:** apt (dpkg-basiert)
+
 ## Konzept
 
 Ein **Template-Repo** mit Agenten, Skills, Hooks und Scripts. Pro Maschine ein
@@ -148,6 +155,7 @@ claude --agent caddy -p "Füge upstream für grafana hinzu"        # direkt
 | Command          | Beschreibung                              |
 |------------------|-------------------------------------------|
 | `/status`        | System-Überblick                          |
+| `/health`        | Schneller Health-Check mit Issue-Flagging |
 | `/upgrade`       | System-Upgrade mit Safety Checks          |
 | `/inventory`     | Komplettes System-Inventory               |
 | `/contribute`    | Verbesserung ans Template senden          |

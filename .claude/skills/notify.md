@@ -11,19 +11,18 @@ Send a message to the operator's Telegram channel.
 
 ## Configuration
 
-Credentials are read from `local/.env`:
+Credentials are read from `local/.env` via the shared library:
 ```bash
-source local/.env 2>/dev/null || true
+source scripts/lib/common.sh && common_init "$0"
+safe_source
 ```
 
 ## Usage
 
 ```bash
-source local/.env
-curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d parse_mode="Markdown" \
-  -d text="$1"
+source scripts/lib/common.sh && common_init "$0"
+safe_source
+telegram_send "$1"
 ```
 
 ## Message Formatting

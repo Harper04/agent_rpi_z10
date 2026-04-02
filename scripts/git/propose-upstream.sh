@@ -125,11 +125,10 @@ echo "🌿 Creating branch: $BRANCH"
 git checkout -b "$BRANCH" upstream/main
 
 for file in "${FILES_TO_INCLUDE[@]}"; do
-  if git show "${SOURCE_BRANCH}:${file}" &>/dev/null; then
-    mkdir -p "$(dirname "$file")"
-    git show "${SOURCE_BRANCH}:${file}" > "$file"
-    git add "$file"
-  fi
+  local_content=$(git show "${SOURCE_BRANCH}:${file}" 2>/dev/null) || continue
+  mkdir -p "$(dirname "$file")"
+  echo "$local_content" > "$file"
+  git add "$file"
 done
 
 git commit -m "propose: ${DESCRIPTION}

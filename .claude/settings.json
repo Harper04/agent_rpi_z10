@@ -68,6 +68,15 @@
             "command": "bash scripts/hooks/validate-destructive.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hooks/backup-config.sh"
+          }
+        ]
       }
     ]
   },

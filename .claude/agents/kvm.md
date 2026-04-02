@@ -49,7 +49,7 @@ virsh setvcpus <vm> <count> --config
 
 ## Documentation
 
-After changes, update `docs/apps/kvm.md` with:
+After changes, update `local/docs/apps/kvm.md` with:
 - VM inventory (name, vCPU, RAM, disk, OS, purpose)
 - Network topology (bridges, NAT)
 - Snapshot inventory

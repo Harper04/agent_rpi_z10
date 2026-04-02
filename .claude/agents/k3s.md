@@ -56,6 +56,39 @@ k3s kubectl logs <pod> -n <namespace> --tail=50
 k3s kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 ```
 
+## Deploy New Workload (from install skill)
+
+When the `app-install` skill delegates a K3s-based installation:
+
+**Standard conventions:**
+- Namespace: one namespace per app (`k3s kubectl create namespace <app>`)
+- Manifests: store in `/var/lib/rancher/k3s/server/manifests/` for auto-apply,
+  or in `/opt/k3s-manifests/<app>/` for manual `kubectl apply`
+- Services: use ClusterIP + Caddy reverse proxy (preferred) or NodePort
+
+```bash
+# Create namespace
+k3s kubectl create namespace ${APP_NAME} --dry-run=client -o yaml | k3s kubectl apply -f -
+
+# Write and apply manifest (from recipe or generated)
+mkdir -p /opt/k3s-manifests/${APP_NAME}
+# Write deployment.yaml, service.yaml, etc.
+k3s kubectl apply -f /opt/k3s-manifests/${APP_NAME}/
+
+# Wait for rollout
+k3s kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME} --timeout=120s
+
+# Verify
+k3s kubectl get all -n ${APP_NAME}
+```
+
+After deployment, update `local/docs/apps/k3s/<app>.md` with:
+- Namespace and resource names
+- Manifest file locations
+- Image versions
+- Service type and ports
+- PVC/storage details
+
 ## Safety Rules
 
 - **Never** delete namespaces without confirmation
@@ -65,7 +98,7 @@ k3s kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 
 ## Documentation
 
-After any change, update `docs/apps/k3s.md` with:
+After any change, update `local/docs/apps/k3s.md` with:
 - K3s version
 - Running workloads and namespaces
 - Exposed services (NodePort, LoadBalancer, Ingress)

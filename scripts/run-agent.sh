@@ -4,30 +4,25 @@
 
 set -uo pipefail
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$REPO"
+# shellcheck source=lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
+cd "$REPO_ROOT"
+
+# Load secrets into environment
+safe_source
 
 # ── Single-instance lock ──────────────────────────────────────────────────────
-PIDFILE="${REPO}/local/logs/run-agent.pid"
-mkdir -p "${REPO}/local/logs"
+PIDFILE="${LOG_DIR}/run-agent.pid"
 
 if [[ -f "$PIDFILE" ]]; then
     old_pid=$(<"$PIDFILE")
     if kill -0 "$old_pid" 2>/dev/null; then
-        echo "[$(date -Is)] Another run-agent.sh is already running (PID $old_pid). Exiting."
+        echo "[$(stamp)] Another run-agent.sh is already running (PID $old_pid). Exiting."
         exit 1
     fi
 fi
 echo $$ > "$PIDFILE"
 trap 'rm -f "$PIDFILE"' EXIT
-
-# Load secrets into environment
-if [[ -f local/.env ]]; then
-    set -a
-    # shellcheck source=/dev/null
-    source local/.env
-    set +a
-fi
 
 # ── Ensure Telegram plugin can read its token ─────────────────────────────────
 # Plugin-spawned MCP servers don't inherit the parent env block, so the plugin
@@ -47,10 +42,7 @@ YELLOW='\033[1;33m'
 RED='\033[1;31m'
 RESET='\033[0m'
 
-stamp() { date '+%Y-%m-%d %H:%M:%S'; }
-
 # ── Log rotation ──────────────────────────────────────────────────────────────
-LOG_DIR="$REPO/local/logs"
 LOG_FILE="$LOG_DIR/agent.log"
 MAX_LOG_BYTES=1048576  # 1 MB
 MAX_LOG_ROTATIONS=3
@@ -60,7 +52,7 @@ mkdir -p "$LOG_DIR"
 rotate_log() {
     [[ -f "$LOG_FILE" ]] || return
     local size
-    size=$(stat -c%s "$LOG_FILE" 2>/dev/null || echo 0)
+    size=$(stat -c%s "$LOG_FILE" 2>/dev/null || stat -f%z "$LOG_FILE" 2>/dev/null || echo 0)
     if (( size >= MAX_LOG_BYTES )); then
         for i in $(seq $((MAX_LOG_ROTATIONS - 1)) -1 1); do
             [[ -f "${LOG_FILE}.${i}" ]] && mv "${LOG_FILE}.${i}" "${LOG_FILE}.$((i+1))"
@@ -75,24 +67,12 @@ log() {
     echo "[$(stamp)] $msg" >> "$LOG_FILE"
 }
 
-# ── Telegram alert ────────────────────────────────────────────────────────────
 CRASH_ALERT_THRESHOLD=3
-
-telegram_alert() {
-    local text="$1"
-    if [[ -z "${TELEGRAM_BOT_TOKEN:-}" || -z "${TELEGRAM_CHAT_ID:-}" ]]; then
-        return
-    fi
-    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -d chat_id="$TELEGRAM_CHAT_ID" \
-        -d parse_mode="Markdown" \
-        -d text="$text" > /dev/null 2>&1 || true
-}
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo -e "${GREEN}╔══════════════════════════════════════════╗${RESET}"
 echo -e "${GREEN}║      Sysadmin Claude Agent               ║${RESET}"
-echo -e "${GREEN}║      $(hostname)$(printf '%*s' $((38 - ${#HOSTNAME})) '')║${RESET}"
+echo -e "${GREEN}║      ${HOSTNAME_SHORT}$(printf '%*s' $((30 - ${#HOSTNAME_SHORT})) '')║${RESET}"
 echo -e "${GREEN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
 
@@ -113,7 +93,7 @@ ATTEMPT=0
 CONSECUTIVE_FAILURES=0
 
 # ── Startup notification ──────────────────────────────────────────────────────
-telegram_alert "🟢 *sysadmin-agent* started on \`$(hostname)\` ($(date '+%Y-%m-%d %H:%M UTC'))"
+telegram_send "🟢 *sysadmin-agent* started on \`${HOSTNAME_SHORT}\` ($(date '+%Y-%m-%d %H:%M UTC'))"
 
 while true; do
     ATTEMPT=$((ATTEMPT + 1))
@@ -141,7 +121,7 @@ while true; do
         log "${RED}[$(stamp)] Claude crashed after ${UPTIME}s (code: ${EXIT_CODE}). Failure #${CONSECUTIVE_FAILURES}. Restarting in ${SLEEP}s...${RESET}"
 
         if (( CONSECUTIVE_FAILURES == CRASH_ALERT_THRESHOLD )); then
-            telegram_alert "⚠️ *sysadmin-agent* on \`$(hostname)\` has crashed ${CONSECUTIVE_FAILURES} times in a row (last exit code: ${EXIT_CODE}). Check \`tmux attach -t sysadmin-agent\`."
+            telegram_send "⚠️ *sysadmin-agent* on \`${HOSTNAME_SHORT}\` has crashed ${CONSECUTIVE_FAILURES} times in a row (last exit code: ${EXIT_CODE}). Check \`tmux attach -t sysadmin-agent\`."
         fi
 
         sleep "$SLEEP"

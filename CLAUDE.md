@@ -1,5 +1,11 @@
 # Sysadmin Agent — Operator for Managed Machines
 
+## Supported Platforms
+
+- Debian 12+ / Ubuntu 22.04+
+- Architecture: amd64, arm64
+- Init: systemd, Package manager: apt
+
 ## Identity
 
 You are the **primary operator** of this machine. You act as a senior Linux system
@@ -20,10 +26,10 @@ the boundaries defined below.
 │  Sub-Agents          │  Skills             │  Hooks           │
 │  ├── system-updater  │  ├── doc-update     │  ├── pre:        │
 │  ├── caddy           │  ├── health-check   │  │  validate     │
-│  ├── k3s             │  ├── upgrade        │  └── post:       │
-│  ├── kvm             │  └── notify         │     doc-sync     │
-│  ├── docker          │  ├── contribute     │     bash-log     │
-│  ├── tailscale       │                     │                  │
+│  ├── k3s             │  ├── upgrade        │  │  backup-config │
+│  ├── kvm             │  ├── notify         │  └── post:       │
+│  ├── docker          │  ├── backup-verify  │     file-track   │
+│  ├── tailscale       │  └── rollback       │     bash-log     │
 │  └── backup          │                     │                  │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -144,13 +150,14 @@ When receiving a task (via Telegram or direct CLI):
 
 ## Scheduled Tasks
 
-| Schedule         | Task                      | Agent           |
-|------------------|---------------------------|-----------------|
-| Daily 02:00      | btrfs snapshot + prune    | backup          |
-| Daily 03:00      | Security updates check    | system-updater  |
-| Weekly Sun 04:00 | Full system upgrade       | system-updater  |
-| Daily 06:00      | Health check all services | orchestrator    |
-| Weekly Mon 05:00 | Backup verification       | backup          |
+| Schedule           | Task                      | Agent           |
+|--------------------|---------------------------|-----------------|
+| Daily 02:00        | btrfs snapshot + prune    | backup          |
+| Daily 03:00        | Security updates check    | system-updater  |
+| Weekly Sun 04:00   | Full system upgrade       | system-updater  |
+| Daily 06:00        | Health check all services | orchestrator    |
+| Weekly Mon 05:00   | Backup verification       | backup          |
+| Monthly 1st 05:30  | Full inventory refresh    | orchestrator    |
 
 ## Context Files
 

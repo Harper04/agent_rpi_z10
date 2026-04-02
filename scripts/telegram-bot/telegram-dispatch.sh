@@ -3,7 +3,7 @@
 #
 # ⚠️  DEPRECATED as a long-running service.
 #     The active Telegram integration is the MCP plugin (plugin:telegram) running
-#     inside the interactive Claude session (see claude-agent.service / start-agent.sh).
+#     inside the interactive Claude session (see start-agent.sh / run-agent.sh).
 #     Do NOT start this as a systemd service alongside that session — it will cause
 #     duplicate responses and consume the same message updates.
 #
@@ -19,18 +19,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ENV_FILE="$REPO_ROOT/local/.env"
-OFFSET_FILE="$REPO_ROOT/local/logs/telegram-offset"
+# shellcheck source=../lib/common.sh
+source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
+
+OFFSET_FILE="$LOG_DIR/telegram-offset"
 
 # Load environment
 if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
+  safe_source
 else
-  echo "❌ No local/.env found. Copy .env.example to local/.env and configure."
+  echo "No local/.env found. Copy .env.example to local/.env and configure."
   exit 1
 fi
 

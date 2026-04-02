@@ -29,6 +29,7 @@ the operator (Tom) via Telegram or direct CLI interaction.
 | docker, compose, container                 | docker             |
 | tailscale, vpn, mesh, headscale            | tailscale          |
 | backup, restore, snapshot, btrfs snapshot  | backup             |
+| install, setup, deploy, app, recipe        | (handle directly)  |
 | health, status, disk, memory, load         | (handle directly)  |
 | docs, documentation, changelog             | (handle directly)  |
 | contribute, upstream, propose, improve     | (handle directly)  |
@@ -56,6 +57,11 @@ systemctl --failed
 ss -tlnp
 ```
 
+### App Installation
+Run the `app-install` skill with the requested app name and options.
+The skill will conduct an interactive interview to gather requirements before executing.
+If a recipe exists in `docs/recipes/` or `local/recipes/`, load it as context.
+
 ### Upstream Sync
 ```bash
 ./scripts/git/sync-upstream.sh --dry-run
@@ -77,6 +83,11 @@ When delegating to a sub-agent:
 5. After completion, verify documentation in `local/docs/` was updated
 6. If not, update it yourself
 7. Append to `local/docs/changelog.md`
+8. **Self-check** — Before reporting completion, verify:
+   - `local/docs/changelog.md` has a new entry for this task
+   - Modified system files have corresponding doc updates in `local/docs/`
+   - If anything is missing → invoke the `doc-update` skill NOW before responding
+   - Check `local/logs/changed-files.log` for any un-documented modifications
 
 ## Error Handling
 

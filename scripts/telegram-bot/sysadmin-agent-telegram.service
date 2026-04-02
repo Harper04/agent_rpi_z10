@@ -1,3 +1,7 @@
+# DEPRECATED — Use interactive Claude session with MCP plugin instead.
+# Kept as reference only. If needed, install via setup.sh or manually substitute
+# %REPO_PATH% and %USER% before copying to /etc/systemd/system/.
+
 [Unit]
 Description=Sysadmin Agent Telegram Dispatcher
 After=network-online.target
@@ -5,15 +9,15 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=tom
-WorkingDirectory=/home/tom/sysadmin-agent
-ExecStart=/home/tom/sysadmin-agent/scripts/telegram-bot/telegram-dispatch.sh
+User=%USER%
+WorkingDirectory=%REPO_PATH%
+ExecStart=%REPO_PATH%/scripts/telegram-bot/telegram-dispatch.sh
 Restart=on-failure
 RestartSec=30
-EnvironmentFile=/home/tom/sysadmin-agent/local/.env
+EnvironmentFile=%REPO_PATH%/local/.env
 
 # Security hardening
-NoNewPrivileges=false
+NoNewPrivileges=true
 ProtectHome=read-only
 
 [Install]

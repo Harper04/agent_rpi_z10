@@ -50,20 +50,20 @@ uname -r
 ```
 
 ### 5. Document
-Update `docs/system/packages.md` with:
+Update `local/docs/system/packages.md` with:
 - Date of upgrade
 - Number of packages updated
 - Any notable version changes
 - Whether reboot is required
 
-Append to `docs/changelog.md`.
+Append to `local/docs/changelog.md`.
 
 ## Unattended Mode
 
 When running on schedule (cron), operate in unattended mode:
 - Apply security updates automatically
 - Hold back kernel updates and packages in the hold list
-- Log everything to `docs/changelog.md`
+- Log everything to `local/docs/changelog.md`
 - Notify via Telegram if reboot is required or if errors occur
 
 ## Safety Rules
