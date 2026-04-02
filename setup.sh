@@ -187,6 +187,27 @@ else
   fi
 fi
 
+# --- Bypass permissions prompt for headless/agent operation ---
+# When running with --dangerously-skip-permissions, Claude Code shows an
+# interactive confirmation dialog on every launch. In headless/tmux agent mode
+# this blocks startup. Setting skipDangerousModePermissionPrompt in user
+# settings suppresses the dialog.
+# See: https://github.com/anthropics/claude-code/issues/41848
+CLAUDE_USER_SETTINGS="$HOME/.claude/settings.json"
+mkdir -p "$HOME/.claude"
+if [ -f "$CLAUDE_USER_SETTINGS" ]; then
+  if jq -e '.skipDangerousModePermissionPrompt' "$CLAUDE_USER_SETTINGS" &>/dev/null; then
+    echo "  ℹ️  skipDangerousModePermissionPrompt already set"
+  else
+    jq '. + {"skipDangerousModePermissionPrompt": true}' "$CLAUDE_USER_SETTINGS" > "${CLAUDE_USER_SETTINGS}.tmp" \
+      && mv "${CLAUDE_USER_SETTINGS}.tmp" "$CLAUDE_USER_SETTINGS"
+    echo "  ✅ Added skipDangerousModePermissionPrompt to ~/.claude/settings.json"
+  fi
+else
+  echo '{"skipDangerousModePermissionPrompt": true}' > "$CLAUDE_USER_SETTINGS"
+  echo "  ✅ Created ~/.claude/settings.json with skipDangerousModePermissionPrompt"
+fi
+
 # --- Ensure git repo ---
 if [ ! -d .git ]; then
   echo "  ❌ Not a git repository. Clone the template first:"

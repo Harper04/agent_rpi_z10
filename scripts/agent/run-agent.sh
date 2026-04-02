@@ -110,6 +110,10 @@ while true; do
 
     START_TS=$(date +%s)
     # Run claude against the tmux PTY so it detects an interactive terminal.
+    # --dangerously-skip-permissions shows an interactive confirmation on every
+    # launch. To suppress it in headless mode, setup.sh writes
+    # skipDangerousModePermissionPrompt: true to ~/.claude/settings.json.
+    # See: https://github.com/anthropics/claude-code/issues/41848
     # --settings enables Telegram plugin for this invocation only (not in
     # project settings, so manual claude sessions don't get a competing poller).
     # --channels registers the plugin as a channel source so inbound Telegram
