@@ -11,7 +11,8 @@
 | OS               | Ubuntu 25.10        |
 | Architecture     | `aarch64`     |
 | Primary IP       | `192.168.2.171`                         |
-| Tailscale IP     | `not configured`                         |
+| Tailscale IP     | `not configured`                          |
+| Bridge IP (br0)  | `192.168.2.173`                           |
 | SSH Port         | `22`                         |
 | Managed by       | tom@altow.de                   |
 | Purpose          | `TODO`                         |
@@ -27,6 +28,7 @@
 |------------------|--------------|---------|
 | ZeroTier         | orchestrator | ⚠️ Awaiting auth |
 | UniFi OS Server  | orchestrator | ✅ Running |
+| Home Assistant   | orchestrator | ✅ Running (KVM) |
 
 ## Local Overrides
 
