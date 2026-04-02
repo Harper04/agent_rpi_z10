@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-02 18:54 — orchestrator
+
+**Action:** Installed AdGuard Home via Podman Quadlet, enabled ufw firewall
+**Reason:** Internet-facing upstream DNS server for ad/tracker blocking; home AGH instances will sync from this
+**Files changed:**
+- `/etc/containers/systemd/adguardhome.container` — Quadlet unit (--net=host, AutoUpdate=registry)
+- `/opt/adguardhome/{conf,work}` — persistent data directories created
+- `/opt/adguardhome/image-history.log` — initial digest recorded
+- `docs/recipes/adguard-home.md` — new recipe (shared)
+- `local/docs/apps/podman/adguard-home.md` — app doc for this machine
+- `local/CLAUDE.local.md` — added adguard-home to installed apps, updated ports and notes
+- ufw enabled with rules: SSH (22), DNS (53), Web UI (3000)
+**Verification:** `systemctl is-active adguardhome.service` → active; `curl http://178.104.28.233:3000/` → HTTP 302 (setup wizard ready)
+**Upstream proposed:** yes (recipe is in shared docs/recipes/)
+
+---
+
 ## 2026-04-02 14:45 — orchestrator
 
 **Action:** Fixed propose-upstream.sh — better secret detection, auto-push, agent-friendly

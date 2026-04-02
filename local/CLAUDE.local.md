@@ -32,6 +32,7 @@
 | App              | Agent        | Status      |
 |------------------|--------------|-------------|
 | route53-dns      | orchestrator | configured  |
+| adguard-home     | orchestrator | installed (setup wizard pending) |
 
 ## Local Overrides
 
@@ -44,9 +45,10 @@
 ```
 
 ### Custom Ports
-| Port   | Service     | Reason for non-default |
-|--------|-------------|------------------------|
-| (none) | —           | —                      |
+| Port   | Service          | Reason for non-default |
+|--------|------------------|------------------------|
+| 53     | AdGuard Home DNS | Public DNS service     |
+| 3000   | AdGuard Home UI  | Temporary, until Caddy |
 
 ### Local Agents
 
@@ -69,7 +71,7 @@ None yet.
 > Free-form notes specific to this machine.
 
 - Fresh Hetzner vServer, minimal Ubuntu 24.04 cloud image
-- No firewall configured yet (ufw installed but inactive)
-- No application services deployed yet
+- ufw enabled: SSH (22), DNS (53), AGH web UI (3000)
+- AdGuard Home running via Podman Quadlet (--net=host)
 - Unattended upgrades enabled for security patches
 - Swap: disabled (0B)
