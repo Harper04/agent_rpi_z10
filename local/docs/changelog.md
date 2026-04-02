@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-04-02 — orchestrator
+
+**Action:** Merged upstream, added mini-core DNS record, fixed dns-sync.sh duplicate owner TXT bug
+**Reason:** Upstream merge was stuck with conflicts; needed DNS entry for mini-core.tiny-systems.eu; script crashed on multi-record hosts due to duplicate owner TXT changes in same Route53 batch
+**Files changed:**
+- `scripts/dns/dns-sync.sh` — fixed duplicate `_owner` TXT record in changeset when host has multiple record types (A + AAAA)
+- `local/dns/records/mini-core.tiny-systems.eu` — A + AAAA records for this machine
+- `local/docs/changelog.md` — this entry
+**Verification:** `dig mini-core.tiny-systems.eu A` → 178.104.28.233, `dig mini-core.tiny-systems.eu AAAA` → 2a01:4f8:1c1b:e5ef::1
+**Upstream proposed:** yes (dns-sync.sh bugfix is shared)
+
+---
+
 ## 2026-04-02 13:27 — orchestrator
 
 **Action:** Created route53-dns service — file-based DNS record management for AWS Route53
