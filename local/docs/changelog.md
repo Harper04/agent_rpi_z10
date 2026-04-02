@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-04-02 13:00 — orchestrator
+
+**Action:** Installed GitHub CLI (`gh` 2.89.0) and added to setup.sh
+**Reason:** Required for PR creation, issue management, and GitHub API operations
+**Files changed:**
+- `setup.sh` — added gh CLI install step + gh auth with PAT
+- `local/docs/system/packages.md` — added gh to key packages
+**Verification:** `gh --version` returns 2.89.0, `gh auth status` confirms authentication
+**Upstream proposed:** yes (setup.sh is a shared file)
+
+---
+
 ## 2026-04-02 12:52 — orchestrator
 
 **Action:** Full system inventory

@@ -20,6 +20,7 @@
 | btrfs-progs        | 6.6.3-1.1build2             | Btrfs tools                | No    |
 | openssl            | 3.0.13-0ubuntu3.6           | TLS/crypto library         | No    |
 | unattended-upgrades| 2.9.1+nmu4ubuntu1           | Auto security updates      | No    |
+| gh                 | 2.89.0                       | GitHub CLI                 | No    |
 | snapd              | 2.72+ubuntu24.04            | Snap package manager       | No    |
 
 ## Held Packages
