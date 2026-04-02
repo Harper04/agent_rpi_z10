@@ -26,9 +26,10 @@ echo $$ > "$PIDFILE"
 trap 'rm -f "$PIDFILE"' EXIT
 
 # ── Telegram plugin: agent-only ──────────────────────────────────────────────
-# The plugin is NOT in .claude/settings.json (shared) — that would give every
-# manual claude session a competing Telegram poller. Instead we pass it via
-# --settings on the agent's claude invocation only.
+# The plugin is NOT in ~/.claude/settings.json (user-level) — that would give
+# every manual claude session a competing Telegram poller. Instead we pass it
+# via --settings on the agent's claude invocation only.
+# setup.sh cleans enabledPlugins from user settings after `claude plugin install`.
 AGENT_SETTINGS='{"enabledPlugins":{"telegram@claude-plugins-official":true}}'
 
 # ── Ensure Telegram plugin can read its token ─────────────────────────────────

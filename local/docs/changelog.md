@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-04-02 14:30 — orchestrator
+
+**Action:** Fixed setup.sh to remove enabledPlugins from user settings after Telegram plugin install
+**Reason:** `claude plugin install` writes `enabledPlugins` to `~/.claude/settings.json`, causing every manual `claude` session to load the Telegram plugin and compete with the systemd agent's poller
+**Files changed:**
+- `setup.sh` — added `jq 'del(.enabledPlugins)'` cleanup step after plugin install
+- `scripts/agent/run-agent.sh` — updated comment to reference setup.sh counterpart
+**Verification:** `jq 'del(.enabledPlugins)'` correctly strips the key; systemd agent uses `--settings` flag instead
+**Upstream proposed:** yes (shared files)
+
+---
+
 ## 2026-04-02 14:23 — orchestrator
 
 **Action:** Restricted Telegram plugin to systemd agent only

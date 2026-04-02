@@ -409,6 +409,10 @@ find scripts/ -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
 chmod +x setup.sh
 
 # --- Install Claude Code Telegram plugin ---
+# The plugin must be installed (downloads/caches the MCP server code), but we
+# must NOT leave enabledPlugins in ~/.claude/settings.json — that would give
+# every manual `claude` session a competing Telegram poller. The systemd agent
+# enables the plugin via --settings flag in run-agent.sh instead.
 if command -v claude &>/dev/null; then
   echo ""
   echo "Installing Claude Code Telegram plugin..."
@@ -418,11 +422,20 @@ if command -v claude &>/dev/null; then
     echo "  ⚠️  Plugin install failed or already installed — skipping"
     echo "     Manual: claude plugin install telegram@claude-plugins-official"
   fi
+
+  # Remove enabledPlugins from user settings so only the systemd agent
+  # (which passes --settings '{"enabledPlugins":...}') gets the plugin.
+  if [ -f "$CLAUDE_USER_SETTINGS" ] && jq -e '.enabledPlugins' "$CLAUDE_USER_SETTINGS" &>/dev/null; then
+    jq 'del(.enabledPlugins)' "$CLAUDE_USER_SETTINGS" > "${CLAUDE_USER_SETTINGS}.tmp" \
+      && mv "${CLAUDE_USER_SETTINGS}.tmp" "$CLAUDE_USER_SETTINGS"
+    echo "  ✅ Removed enabledPlugins from user settings (agent-only via --settings flag)"
+  fi
 else
   echo ""
   echo "  ⚠️  claude not installed — skipping Telegram plugin install"
   echo "     After installing Claude Code, run:"
   echo "     claude plugin install telegram@claude-plugins-official"
+  echo "     Then remove enabledPlugins from ~/.claude/settings.json"
 fi
 
 # --- Install cron jobs ---
