@@ -255,6 +255,7 @@ add_zone_change() {
 
 # ── Process desired records (CREATE/UPDATE) ──────────────────────────────────
 declare -A DESIRED_FQDNS  # track which FQDNs we want
+declare -A OWNER_TXT_ADDED  # track owner TXT records already queued
 
 for key in "${!DESIRED_RECORDS[@]}"; do
   fqdn="${key%%|*}"
@@ -290,9 +291,12 @@ for key in "${!DESIRED_RECORDS[@]}"; do
   change=$(make_change "UPSERT" "$fqdn" "$rtype" "$ttl" "${values[@]}")
   add_zone_change "$zone_id" "$change"
 
-  # Upsert owner TXT record
-  owner_change=$(make_change "UPSERT" "_owner.${fqdn}" "TXT" "$ttl" "\"managed-by=$OWNER_TAG\"")
-  add_zone_change "$zone_id" "$owner_change"
+  # Upsert owner TXT record (once per FQDN to avoid duplicate changes in batch)
+  if [[ -z "${OWNER_TXT_ADDED[$fqdn]:-}" ]]; then
+    owner_change=$(make_change "UPSERT" "_owner.${fqdn}" "TXT" "$ttl" "\"managed-by=$OWNER_TAG\"")
+    add_zone_change "$zone_id" "$owner_change"
+    OWNER_TXT_ADDED["$fqdn"]=1
+  fi
 done
 
 # ── Process deletions (owned records with no file) ───────────────────────────
