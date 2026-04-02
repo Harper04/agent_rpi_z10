@@ -15,11 +15,21 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh" && common_init "$0"
 
 SESSION="sysadmin-agent"
 
+# ── Cleanup: kill tmux session and orphaned telegram plugin processes ─────────
+cleanup() {
+    echo "[$(date -Is)] Shutting down agent session..."
+    tmux kill-session -t "$SESSION" 2>/dev/null || true
+    pkill -f "bun.*telegram.*server.ts" 2>/dev/null || true
+    exit 0
+}
+trap cleanup SIGTERM SIGINT SIGHUP EXIT
+
 setup_session() {
     echo "[$(date -Is)] Creating tmux session '${SESSION}'..."
 
-    # Fresh start
+    # Fresh start — kill old session and any orphaned telegram plugin processes
     tmux kill-session -t "$SESSION" 2>/dev/null || true
+    pkill -f "bun.*telegram.*server.ts" 2>/dev/null || true
     sleep 1
 
     # Create session with agent window (detached, sized for readability)
@@ -39,6 +49,11 @@ setup_session() {
     # Window 0: claude restart loop
     tmux send-keys -t "${SESSION}:agent" \
         "bash ${REPO_ROOT}/scripts/run-agent.sh" Enter
+
+    # Capture all agent-window output to log file (without breaking PTY)
+    mkdir -p "${REPO_ROOT}/local/logs"
+    tmux pipe-pane -t "${SESSION}:agent" \
+        "cat >> ${REPO_ROOT}/local/logs/agent.log"
 
     # Window 1: spare interactive shell
     tmux new-window -t "$SESSION" -n "shell"

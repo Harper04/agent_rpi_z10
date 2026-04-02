@@ -11,6 +11,39 @@ cd "$REPO_ROOT"
 # Load secrets into environment
 safe_source
 
+# ── Single-instance lock ──────────────────────────────────────────────────────
+PIDFILE="${LOG_DIR}/run-agent.pid"
+
+if [[ -f "$PIDFILE" ]]; then
+    old_pid=$(<"$PIDFILE")
+    if kill -0 "$old_pid" 2>/dev/null; then
+        echo "[$(stamp)] Another run-agent.sh is already running (PID $old_pid). Exiting."
+        exit 1
+    fi
+fi
+echo $$ > "$PIDFILE"
+
+trap 'rm -f "$PIDFILE"' EXIT
+
+# ── Telegram plugin: agent-only ──────────────────────────────────────────────
+# The plugin is NOT in .claude/settings.json (shared) — that would give every
+# manual claude session a competing Telegram poller. Instead we pass it via
+# --settings on the agent's claude invocation only.
+AGENT_SETTINGS='{"enabledPlugins":{"telegram@claude-plugins-official":true}}'
+
+# ── Ensure Telegram plugin can read its token ─────────────────────────────────
+# Plugin-spawned MCP servers don't inherit the parent env block, so the plugin
+# reads its token from ~/.claude/channels/telegram/.env. Sync it from local/.env
+# if missing so the plugin always starts correctly.
+TELE_ENV="${HOME}/.claude/channels/telegram/.env"
+if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]]; then
+    mkdir -p "$(dirname "$TELE_ENV")"
+    if ! grep -q "TELEGRAM_BOT_TOKEN=" "$TELE_ENV" 2>/dev/null; then
+        printf 'TELEGRAM_BOT_TOKEN=%s\n' "$TELEGRAM_BOT_TOKEN" >> "$TELE_ENV"
+        chmod 600 "$TELE_ENV"
+    fi
+fi
+
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 RED='\033[1;31m'
@@ -66,6 +99,9 @@ STABLE_UPTIME_SECS=30
 ATTEMPT=0
 CONSECUTIVE_FAILURES=0
 
+# ── Startup notification ──────────────────────────────────────────────────────
+telegram_send "🟢 *sysadmin-agent* started on \`${HOSTNAME_SHORT}\` ($(date '+%Y-%m-%d %H:%M UTC'))"
+
 while true; do
     ATTEMPT=$((ATTEMPT + 1))
     rotate_log
@@ -73,7 +109,11 @@ while true; do
     log "${GREEN}[$(stamp)] Starting claude (attempt #${ATTEMPT}, consecutive failures: ${CONSECUTIVE_FAILURES})...${RESET}"
 
     START_TS=$(date +%s)
-    claude --dangerously-skip-permissions >> "$LOG_FILE" 2>&1 && EXIT_CODE=0 || EXIT_CODE=$?
+    # Run claude against the tmux PTY so it detects an interactive terminal.
+    # --settings enables Telegram plugin for this invocation only (not in
+    # project settings, so manual claude sessions don't get a competing poller).
+    claude --dangerously-skip-permissions --settings "$AGENT_SETTINGS" || true
+    EXIT_CODE=$?
     END_TS=$(date +%s)
     UPTIME=$(( END_TS - START_TS ))
 
