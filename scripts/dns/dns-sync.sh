@@ -19,7 +19,7 @@
 #   dns-sync.sh --dry-run    # show plan without applying
 #   dns-sync.sh --diff       # alias for --dry-run
 
-set -euo pipefail
+set -eo pipefail
 
 # shellcheck source=../lib/common.sh
 source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
@@ -61,12 +61,6 @@ RECORD_FILES=()
 while IFS= read -r f; do
   RECORD_FILES+=("$f")
 done < <(find "$RECORD_DIR" -maxdepth 1 -type f ! -name '.*' ! -name '*.bak*' | sort)
-
-if [[ ${#RECORD_FILES[@]} -eq 0 ]]; then
-  echo "No record files found in $RECORD_DIR"
-  echo "Create files like: $RECORD_DIR/app.example.com"
-  exit 0
-fi
 
 echo "=== DNS Sync (owner=$OWNER_TAG, dry_run=$DRY_RUN) ==="
 echo "Record files: ${#RECORD_FILES[@]}"
@@ -197,6 +191,16 @@ get_existing_ttl() {
     '.ResourceRecordSets[] | select(.Name == $name and .Type == $type) | .TTL' 2>/dev/null
 }
 
+# ── Ensure all zones are fetched (needed to find orphaned owned records) ─────
+for zone_name in "${!ZONE_MAP[@]}"; do
+  zone_id="${ZONE_MAP[$zone_name]}"
+  if [[ -z "${EXISTING_RRSETS[$zone_id]:-}" ]]; then
+    echo "Fetching records for zone $zone_id ($zone_name)..."
+    EXISTING_RRSETS["$zone_id"]=$(aws route53 list-resource-record-sets \
+      --hosted-zone-id "$zone_id" --output json)
+  fi
+done
+
 # ── Find all owned FQDNs in Route53 ─────────────────────────────────────────
 declare -A OWNED_FQDNS  # key=fqdn value=zone_id (records we own in Route53)
 
@@ -222,43 +226,31 @@ STATS_UPDATE=0
 STATS_DELETE=0
 STATS_NOOP=0
 
-# Helper: build a CHANGE json entry
+# Helper: build a CHANGE json entry (uses jq for safe JSON construction)
 make_change() {
   local action="$1" fqdn="$2" rtype="$3" ttl="$4"
   shift 4
   local values=("$@")
 
-  local rrs=""
+  # Build ResourceRecords array via jq
+  local rr_json="[]"
   for v in "${values[@]}"; do
-    # TXT records need quoting
-    if [[ "$rtype" == "TXT" ]]; then
-      # Ensure value is quoted
-      [[ "$v" =~ ^\" ]] || v="\"$v\""
-    fi
-    [[ -n "$rrs" ]] && rrs+=","
-    rrs+="{\"Value\":\"$v\"}"
+    rr_json=$(echo "$rr_json" | jq --arg val "$v" '. + [{"Value": $val}]')
   done
 
-  cat <<CHANGE
-{
-  "Action": "$action",
-  "ResourceRecordSet": {
-    "Name": "${fqdn}.",
-    "Type": "$rtype",
-    "TTL": $ttl,
-    "ResourceRecords": [$rrs]
-  }
-}
-CHANGE
+  jq -n \
+    --arg action "$action" \
+    --arg name "${fqdn}." \
+    --arg type "$rtype" \
+    --argjson ttl "$ttl" \
+    --argjson rrs "$rr_json" \
+    '{Action: $action, ResourceRecordSet: {Name: $name, Type: $type, TTL: $ttl, ResourceRecords: $rrs}}'
 }
 
 add_zone_change() {
   local zone_id="$1" change="$2"
-  if [[ -n "${ZONE_CHANGES[$zone_id]:-}" ]]; then
-    ZONE_CHANGES["$zone_id"]+=",${change}"
-  else
-    ZONE_CHANGES["$zone_id"]="$change"
-  fi
+  local current="${ZONE_CHANGES[$zone_id]:-[]}"
+  ZONE_CHANGES["$zone_id"]=$(echo "$current" | jq --argjson c "$change" '. + [$c]')
 }
 
 # ── Process desired records (CREATE/UPDATE) ──────────────────────────────────
@@ -356,7 +348,7 @@ echo "Applying changes..."
 
 for zone_id in "${!ZONE_CHANGES[@]}"; do
   changes="${ZONE_CHANGES[$zone_id]}"
-  batch="{\"Changes\":[${changes}]}"
+  batch=$(echo "$changes" | jq '{Changes: .}')
 
   # Validate JSON
   if ! echo "$batch" | jq . >/dev/null 2>&1; then
