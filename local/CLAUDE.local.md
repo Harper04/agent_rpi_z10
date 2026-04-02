@@ -26,6 +26,7 @@
 | App              | Agent        | Status  |
 |------------------|--------------|---------|
 | ZeroTier         | orchestrator | ⚠️ Awaiting auth |
+| UniFi OS Server  | orchestrator | ✅ Running |
 
 ## Local Overrides
 
