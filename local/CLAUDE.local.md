@@ -25,7 +25,7 @@
 
 | App              | Agent        | Status  |
 |------------------|--------------|---------|
-| TODO             | TODO         | TODO    |
+| ZeroTier         | orchestrator | ⚠️ Awaiting auth |
 
 ## Local Overrides
 
