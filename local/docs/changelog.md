@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-02 14:45 — orchestrator
+
+**Action:** Fixed propose-upstream.sh — better secret detection, auto-push, agent-friendly
+**Reason:** Script false-positived on setup.sh (matched variable names like `TELEGRAM_BOT_TOKEN` not actual secrets), blocked headless use with `read -rp`, didn't push or return to branch
+**Files changed:**
+- `scripts/git/propose-upstream.sh` — rewrote secret scanner (token patterns instead of key names), added `--yes`/`--no-push` flags, auto-push + return to branch, fixed `echo` content mangling
+**Verification:** setup.sh no longer triggers false positive; real token patterns (ghp_*, AKIA*, bot*:*) are caught correctly
+**Upstream proposed:** yes
+
+---
+
 ## 2026-04-02 14:30 — orchestrator
 
 **Action:** Fixed setup.sh to remove enabledPlugins from user settings after Telegram plugin install
