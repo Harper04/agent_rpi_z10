@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-02 13:45 — orchestrator
+
+**Action:** Installed Route53 DNS management service
+- Installed aws-cli v2.34.22 via snap
+- Created `local/dns/dns.conf` with owner tag `ziegeleiweg-pi`
+- Created `local/dns/records/` directory
+- Added AWS credentials to `local/.env`
+- Verified access to hosted zone `tiny-systems.eu.` (ZUS1MBK3O5V24)
+
+---
+
 ## 2026-04-02 10:35 — orchestrator
 
 **Action:** Installed Home Assistant OS 17.1 as KVM VM

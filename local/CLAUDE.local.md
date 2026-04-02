@@ -29,6 +29,7 @@
 | ZeroTier         | orchestrator | ✅ Running |
 | UniFi OS Server  | orchestrator | ✅ Running |
 | Home Assistant   | orchestrator | ✅ Running (KVM) |
+| Route53 DNS      | orchestrator | ✅ Running |
 
 ## Local Overrides
 
@@ -59,6 +60,8 @@ None yet.
 |---------------------|-------------------|------------------------|
 | Telegram Bot Token  | `local/.env`      | Agent notifications    |
 | Telegram Chat ID    | `local/.env`      | Operator chat          |
+| AWS Access Key      | `local/.env`      | Route53 DNS management |
+| AWS Secret Key      | `local/.env`      | Route53 DNS management |
 
 ## Notes
 
