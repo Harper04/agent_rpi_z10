@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-02 14:23 — orchestrator
+
+**Action:** Restricted Telegram plugin to systemd agent only
+**Reason:** `~/.claude/settings.json` had `enabledPlugins` with Telegram enabled at user level, causing every manual `claude` session to also poll Telegram — competing with the systemd agent
+**Files changed:**
+- `~/.claude/settings.json` — removed `enabledPlugins` block (plugin already passed via `--settings` flag in `run-agent.sh`)
+**Verification:** `systemctl restart sysadmin-agent` — agent starts with Telegram channel; manual `claude --agent orchestrator` no longer loads the Telegram plugin
+**Upstream proposed:** no (user-level config, machine-specific)
+
+---
+
 ## 2026-04-02 14:10 — orchestrator
 
 **Action:** Fixed headless agent startup — bypass-permissions prompt was blocking tmux/systemd launch
