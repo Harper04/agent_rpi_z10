@@ -51,7 +51,7 @@
 | 53     | AdGuard Home DNS | Public DNS service     |
 | 80     | Caddy HTTP       | HTTP→HTTPS redirect    |
 | 443    | Caddy HTTPS      | Reverse proxy + auth   |
-| 3000   | AdGuard Home UI  | Localhost only, behind Caddy |
+| 7080   | AdGuard Home UI  | Localhost only, behind Caddy |
 
 ### Local Agents
 

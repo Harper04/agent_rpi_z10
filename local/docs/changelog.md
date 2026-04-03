@@ -3,6 +3,18 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-03 11:15 — orchestrator
+
+**Action:** Updated Caddy reverse proxy for AdGuard Home from port 3000 → 7080
+**Reason:** Operator reconfigured AdGuard Home web UI to listen on 127.0.0.1:7080
+**Files changed:**
+- `/etc/caddy/sites/adguard.caddy` — `reverse_proxy localhost:3000` → `localhost:7080` (backup at `.bak.2026-04-03`)
+- `local/CLAUDE.local.md` — updated port 3000 → 7080 in custom ports table
+**Verification:** AdGuard responds on port 7080 (HTTP 302); Caddy reload successful; authenticated proxy working (logs show allow rules firing)
+**Upstream proposed:** no (machine-specific config)
+
+---
+
 ## 2026-04-03 10:30 — orchestrator
 
 **Action:** Added "close the loop" rule to orchestrator agent — Telegram-initiated sessions must always reply on Telegram, even for self-initiated follow-ups like `/contribute`
