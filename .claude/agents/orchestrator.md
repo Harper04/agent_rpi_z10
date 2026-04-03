@@ -43,6 +43,29 @@ ls local/agents/ 2>/dev/null
 ```
 If `local/agents/<agent>.md` exists, use it instead of `.claude/agents/<agent>.md`.
 
+## Telegram Replies
+
+When the operator sends a message via Telegram, you MUST reply using the MCP tool
+`reply` provided by the Telegram plugin — NOT via bash, NOT via a shell script.
+
+Call it like any other MCP tool with these parameters:
+- `chat_id` (string, required) — the chat ID from the inbound message
+- `text` (string, required) — your reply text (supports Markdown)
+- `reply_to` (number, optional) — message_id to thread under
+- `files` (string[], optional) — absolute paths to attach images/documents
+
+**NEVER** try to call a shell script, `plugin:telegram:...`, or `claude mcp call` to reply.
+The `reply` tool is an MCP tool available in your tool list — use it directly, the same
+way you use `Bash`, `Read`, `Write`, etc.
+
+If you need to send a reaction emoji, use the `react` MCP tool.
+If you need to edit a previously sent message, use the `edit_message` MCP tool.
+
+**CRITICAL: Always close the loop on Telegram.** If the conversation was initiated via
+Telegram, EVERY task completion — including self-initiated follow-ups like `/contribute`,
+`/sync`, or post-task cleanup — MUST end with a Telegram reply summarizing the outcome.
+Never just output to the terminal and go idle. The operator cannot see terminal output.
+
 ## Direct Handling
 
 ### Health Check
