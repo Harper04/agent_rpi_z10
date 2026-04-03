@@ -111,6 +111,8 @@ sudo systemctl restart cockpit-local.service
 ## Known Issues & Gotchas
 
 - Default `cockpit.socket` is masked (`/dev/null` symlink) to prevent accidental activation.
+- Cockpit requires the `Origin` header on WebSocket handshakes — Caddy must inject it via `header_up Origin`.
+- Empty `Banner =` in cockpit.conf causes repeated log errors — omit the line entirely.
 - Cockpit uses WebSockets heavily — Caddy handles this natively.
 - Running as `ubuntu` user — all Cockpit sessions share this user context.
 - If cockpit-ws crashes, systemd will restart it (RestartSec=5).
@@ -121,3 +123,4 @@ sudo systemctl restart cockpit-local.service
 |------------|-------------------------------------------------|--------------|
 | 2026-04-03 | Initial installation with local-session + Caddy | orchestrator |
 | 2026-04-03 | Added cockpit-podman for container management   | orchestrator |
+| 2026-04-03 | Fix 500: add Origin header_up in Caddy, remove empty Banner | orchestrator |
