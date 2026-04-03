@@ -38,7 +38,7 @@ mkdir -p local/dns/records
 
 ### Key settings
 
-- `OWNER_TAG=min-core` — identifies our records in shared hosted zones
+- `OWNER_TAG=mini-core` — identifies our records in shared hosted zones
 - `DEFAULT_TTL=300` — default TTL for records
 - Hosted zones auto-detected from record FQDNs
 

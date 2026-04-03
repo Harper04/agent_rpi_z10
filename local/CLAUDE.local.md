@@ -1,4 +1,4 @@
-# Machine: min-core
+# Machine: mini-core
 
 > This file is machine-specific and NEVER pushed to the shared template upstream.
 > It is auto-populated by `./setup.sh` and updated by agents during operation.
@@ -7,7 +7,7 @@
 
 | Key              | Value                          |
 |------------------|--------------------------------|
-| Hostname         | `min-core`                     |
+| Hostname         | `mini-core`                     |
 | OS               | Ubuntu 24.04.3 LTS             |
 | Kernel           | `6.8.0-90-generic`             |
 | Architecture     | `x86_64`                       |

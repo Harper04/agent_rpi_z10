@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-03 06:35 — orchestrator
+
+**Action:** Renamed hostname from `min-core` to `mini-core`, updated all references
+**Reason:** `min-core` was a typo — should be `mini-core`
+**Files changed:**
+- `/etc/hostname` — via `hostnamectl set-hostname mini-core`
+- `/etc/hosts` — `127.0.1.1 mini-core` (backup at `.bak.2026-04-03`)
+- `local/CLAUDE.local.md` — all occurrences
+- `local/dns/dns.conf` — `OWNER_TAG`
+- `local/docs/apps/apt/route53-dns.md` — `OWNER_TAG` reference
+- `docs/recipes/adguard-home.md` — architecture diagram references
+**Verification:** `hostname` → `mini-core`; `grep -r min-core` → no matches remaining
+**Upstream proposed:** no (machine-specific, except recipe which had machine name in example)
+
+---
+
 ## 2026-04-03 05:10 — orchestrator
 
 **Action:** Merged upstream (5 commits), fixed cron-runner PATH for native claude install

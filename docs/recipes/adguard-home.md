@@ -24,9 +24,9 @@ API, making it the central source of truth for filter lists and rules.
 
 **Architecture role:**
 ```
-End devices ──────► min-core:53 (AdGuard Home)
-Home AGH instances ► min-core:53 (upstream DNS)
-Home AGH instances ◄── sync ── min-core:3000/api
+End devices ──────► mini-core:53 (AdGuard Home)
+Home AGH instances ► mini-core:53 (upstream DNS)
+Home AGH instances ◄── sync ── mini-core:3000/api
 systemd-resolved stays on 127.0.0.53 (host DNS, untouched)
 ```
 
