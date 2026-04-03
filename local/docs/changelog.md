@@ -3,6 +3,15 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-03 12:49 — orchestrator
+
+**Action:** Contributed Cockpit recipe to upstream template repo
+**Reason:** Operator requested /contribute — recipe captures all learnings from deployment
+**Files changed:**
+- `docs/recipes/cockpit.md` — new shared recipe
+**Verification:** PR created: https://github.com/Harper04/agent-sysadmin/pull/22
+**Upstream proposed:** yes
+
 ## 2026-04-03 12:05 — orchestrator
 
 **Action:** Installed Cockpit web management UI with local-session SSO via Caddy
