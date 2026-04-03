@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-04-03 08:54 — caddy
+
+**Action:** Installed Caddy v2.11.2 with caddy-security + route53 plugins as reverse proxy with auth portal
+**Reason:** Operator request — secure web applications with SSO (passkeys), HTTPS via Route53 DNS-01
+**Files changed:**
+- `/usr/bin/caddy` — custom binary with plugins
+- `/etc/systemd/system/caddy.service` — systemd service
+- `/etc/caddy/Caddyfile` — main config with auth portal (Internet flavor)
+- `/etc/caddy/env` — secrets (JWT key, AWS creds, admin user)
+- `/etc/caddy/sites/_auth.caddy` — auth portal site
+- `/etc/caddy/sites/default.caddy` — static landing page
+- `/etc/caddy/sites/adguard.caddy` — AdGuard Home reverse proxy
+- `/etc/caddy/static/index.html` — landing page
+- `/opt/adguardhome/conf/AdGuardHome.yaml` — moved web UI from 0.0.0.0:80 → 127.0.0.1:3000
+- `local/dns/records/*.mini-core.tiny-systems.eu` — wildcard CNAME
+- UFW: opened port 443/tcp
+**Verification:**
+- `curl -sI https://mini-core.tiny-systems.eu/` → 302 to auth portal
+- `curl -sI https://auth.mini-core.tiny-systems.eu/` → 302 to login + sets SSO cookie
+- `curl -sI https://adguard.mini-core.tiny-systems.eu/` → 302 to auth portal
+- TLS: Let's Encrypt E7, valid until Jul 2026, TLSv1.3
+**Upstream proposed:** no (machine-specific install; recipe/agent/skills already committed to shared)
+
+---
+
 ## 2026-04-03 06:35 — orchestrator
 
 **Action:** Renamed hostname from `min-core` to `mini-core`, updated all references

@@ -32,7 +32,8 @@
 | App              | Agent        | Status      |
 |------------------|--------------|-------------|
 | route53-dns      | orchestrator | configured  |
-| adguard-home     | orchestrator | running                         |
+| adguard-home     | orchestrator | running     |
+| caddy            | caddy        | running     |
 
 ## Local Overrides
 
@@ -48,7 +49,9 @@
 | Port   | Service          | Reason for non-default |
 |--------|------------------|------------------------|
 | 53     | AdGuard Home DNS | Public DNS service     |
-| 80     | AdGuard Home UI  | Temporary, until Caddy |
+| 80     | Caddy HTTP       | HTTP→HTTPS redirect    |
+| 443    | Caddy HTTPS      | Reverse proxy + auth   |
+| 3000   | AdGuard Home UI  | Localhost only, behind Caddy |
 
 ### Local Agents
 

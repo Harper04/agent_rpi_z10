@@ -38,7 +38,7 @@ Home network AGH instances sync configuration from this instance.
 | Port | Protocol | Binding         | Purpose              |
 |------|----------|-----------------|----------------------|
 | 53   | tcp+udp  | 178.104.28.233  | DNS                  |
-| 80   | tcp      | 0.0.0.0         | Web UI (until Caddy) |
+| 3000 | tcp      | 127.0.0.1       | Web UI (behind Caddy)|
 
 ## Firewall (ufw)
 
@@ -46,7 +46,8 @@ Home network AGH instances sync configuration from this instance.
 |------------|---------|
 | 22/tcp     | allowed (SSH) |
 | 53/tcp+udp | allowed (DNS) |
-| 80/tcp     | allowed (Web UI, until Caddy) |
+| 80/tcp     | allowed (Caddy HTTP redirect) |
+| 443/tcp    | allowed (Caddy HTTPS)         |
 
 ## Security Notes
 
@@ -57,7 +58,7 @@ Home network AGH instances sync configuration from this instance.
 - **safebrowsing: enabled** — blocks known malicious domains
 - **cache: 10 MB, min TTL 300s** — reduces upstream queries
 - **upstream: Quad9 DoH** (`dns10.quad9.net`) — encrypted, malware-blocking
-- Port 80 (Web UI) publicly accessible until Caddy + caddy-security
+- Web UI on 127.0.0.1:3000, proxied via Caddy at https://adguard.mini-core.tiny-systems.eu/ (auth required)
 
 ## Update Procedure
 
