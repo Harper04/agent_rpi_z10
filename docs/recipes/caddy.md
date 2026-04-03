@@ -223,24 +223,26 @@ sudo chown caddy:caddy /etc/caddy/env
             crypto default token lifetime 86400
             crypto key sign-verify {env.JWT_SHARED_KEY}
             enable identity store localdb
+            enable admin api
             cookie domain <hostname>.tiny-systems.eu
             cookie lifetime 86400
             ui {
                 links {
                     "Home" https://<hostname>.tiny-systems.eu/ icon "las la-home"
-                    "My Identity" "/whoami" icon "las la-user"
-                    "Portal Settings" "/settings" icon "las la-cog"
+                    "My Identity" "/auth/whoami" icon "las la-user"
+                    "My Profile" "/auth/profile/" icon "las la-id-card"
                 }
-                password_recovery_enabled no
             }
             transform user {
                 match origin local
                 action add role authp/user
+                ui link "Portal" /auth/portal icon "las la-cog"
+                ui link "Profile" /auth/profile/ icon "las la-id-card"
             }
         }
 
         authorization policy default_policy {
-            set auth url https://auth.<hostname>.tiny-systems.eu/
+            set auth url https://auth.<hostname>.tiny-systems.eu/auth/
             crypto key verify {env.JWT_SHARED_KEY}
             allow roles authp/admin authp/user
             acl rule {
@@ -256,7 +258,7 @@ sudo chown caddy:caddy /etc/caddy/env
         }
 
         authorization policy api_policy {
-            set auth url https://auth.<hostname>.tiny-systems.eu/
+            set auth url https://auth.<hostname>.tiny-systems.eu/auth/
             crypto key verify {env.JWT_SHARED_KEY}
             # API policy: allow all (no auth required)
             acl rule {
@@ -336,13 +338,20 @@ import /etc/caddy/sites/*.caddy
 
 #### Auth portal — `/etc/caddy/sites/_auth.caddy`
 
+**IMPORTANT:** The `authenticate` handler MUST be served under `/auth/*` route.
+The profile SPA hardcodes `/auth/` as its base path — serving from `/` causes
+doubled paths in sidebar navigation (`/profile/profile/...`).
+
 ```caddyfile
 auth.<hostname>.tiny-systems.eu {
     tls {
         dns route53
     }
-    route {
+    route /auth* {
         authenticate with myportal
+    }
+    route {
+        redir https://auth.<hostname>.tiny-systems.eu/auth/ 302
     }
 }
 ```
@@ -509,12 +518,19 @@ curl -vI https://<hostname>.tiny-systems.eu 2>&1 | grep -E "expire|issuer|subjec
 1. Start Caddy: `sudo systemctl start caddy`
 2. Verify TLS cert was obtained: check logs `journalctl -u caddy --since "5 min ago"`
 3. Open `https://auth.<hostname>.tiny-systems.eu/` — log in with admin credentials
-4. Register a passkey via Portal Settings → Security → Add Hardware Key
-5. After passkey registration, password can optionally be disabled
+4. The "sandbox" step (re-enter password) is normal caddy-security behavior
+5. Go to My Profile (`/auth/profile/`) → manage MFA, passkeys, password
 6. Test SSO: visit any app subdomain — should recognize the session without re-login
 
 ## Known Issues
 
+- **Auth portal base path:** The `authenticate` handler MUST be served under `route /auth*`.
+  The profile SPA hardcodes `/auth/` as its base path. Serving from `/` causes doubled
+  paths in sidebar navigation (`/profile/profile/...`).
+- **`enable admin api`** is required in the portal config for the profile management UI
+  (MFA, passkeys, password change) to work.
+- **`users.json` ownership** must be `caddy:caddy`. If Caddy config is validated as root,
+  it may create the file with root ownership — fix with `chown caddy:caddy`.
 - Custom Caddy binary must be rebuilt/re-downloaded after Caddy version upgrades.
   The `scripts/caddy/build-caddy.sh` script handles this.
 - `caddy-security` creates `/var/lib/caddy/users.json` on first start with a default
@@ -525,9 +541,12 @@ curl -vI https://<hostname>.tiny-systems.eu 2>&1 | grep -E "expire|issuer|subjec
 - JWT_SHARED_KEY must be the same in the auth portal and all authorization policies.
   It's loaded from `/etc/caddy/env` via `{env.JWT_SHARED_KEY}`.
 - Route53 DNS-01 can take 30-60s for propagation. First cert acquisition may be slow.
+  Caddy auto-retries (staging first, then production).
 - If ports 80/443 are occupied, Caddy won't start. Free them first (e.g., move AdGuard
   Home web UI to a non-standard port, then proxy it through Caddy).
 - On `caddy reload`, existing connections are gracefully drained. Prefer reload over restart.
+- After config changes that affect cookies/JWT, users must clear browser cookies or
+  use incognito. Old tokens will be rejected and deleted.
 - Wildcard certs cover `*.<hostname>.tiny-systems.eu` but NOT `<hostname>.tiny-systems.eu`
   itself. Both the bare domain and wildcard need TLS blocks (Caddy handles this
   automatically when both site blocks exist).

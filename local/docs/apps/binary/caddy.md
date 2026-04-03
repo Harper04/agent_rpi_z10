@@ -41,11 +41,14 @@
 
 ## Auth Portal
 
-- **URL:** https://auth.mini-core.tiny-systems.eu/
+- **Login URL:** https://auth.mini-core.tiny-systems.eu/ (redirects to `/auth/login`)
+- **Base path:** `/auth/` (required — caddy-security profile SPA expects this)
+- **Portal dashboard:** `/auth/portal` (app links)
+- **Profile / MFA:** `/auth/profile/` (passkeys, MFA, password, API keys)
 - **SSO cookie domain:** `mini-core.tiny-systems.eu` (shared across all subdomains)
-- **Initial admin:** `tomjaster` (tom@altow.de)
+- **Admin user:** `tomjaster` (tom@altow.de, role: authp/admin)
 - **Auth policies:** `default_policy` (require login), `api_policy` (allow all)
-- **Passkey support:** Available via Portal Settings → Security
+- **Admin API:** enabled (required for profile management)
 
 ## DNS Records
 
@@ -82,3 +85,7 @@ curl -sf https://auth.mini-core.tiny-systems.eu/ -o /dev/null -w "%{http_code}"
 - Custom binary must be re-downloaded on Caddy upgrades
 - `users.json` ownership must be `caddy:caddy`
 - First cert acquisition may timeout on DNS propagation; Caddy auto-retries
+- Auth portal MUST be served under `/auth/*` route — the profile SPA hardcodes `/auth/` as base path; serving from `/` causes doubled paths in sidebar navigation
+- After config changes that affect cookies/tokens, users must clear browser cookies for `mini-core.tiny-systems.eu` or use incognito
+- `enable admin api` is required for the profile management UI to work
+- Login has a "sandbox" step (re-enter password) — this is caddy-security's built-in behavior, not a bug

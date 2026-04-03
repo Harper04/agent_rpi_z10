@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-03 09:50 — caddy
+
+**Action:** Fixed auth portal configuration — moved to `/auth/` base path, enabled admin API, fixed profile SPA navigation
+**Reason:** Profile SPA sidebar links doubled the path prefix (`/profile/profile/...`); portal settings/MFA pages were inaccessible
+**Files changed:**
+- `/etc/caddy/Caddyfile` — added `enable admin api`, moved all portal links to `/auth/` prefix, updated auth redirect URLs
+- `/etc/caddy/sites/_auth.caddy` — serve authenticate handler under `route /auth*`, root redirects to `/auth/`
+- UFW: updated port 80 comment from "AdGuard Home Web UI" to "Caddy HTTP redirect"
+**Verification:**
+- Login flow works end-to-end (login → sandbox → portal → profile)
+- Profile SPA sidebar links resolve correctly (`/auth/profile/multi-factor-authenticators/`)
+- MFA/passkey management accessible via My Profile
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-03 08:54 — caddy
 
 **Action:** Installed Caddy v2.11.2 with caddy-security + route53 plugins as reverse proxy with auth portal
