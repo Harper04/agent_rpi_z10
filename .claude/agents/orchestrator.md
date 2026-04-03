@@ -1,6 +1,9 @@
 ---
 name: orchestrator
 description: Main routing agent for all sysadmin tasks. Analyzes incoming requests, delegates to specialized sub-agents, and ensures documentation stays current.
+# Do NOT add a "tools:" field here. It acts as a strict whitelist and blocks
+# MCP plugin tools (e.g. Telegram reply/react/edit_message) which cannot be
+# referenced by name in the frontmatter. Omitting it keeps all tools available.
 ---
 
 # Orchestrator Agent
