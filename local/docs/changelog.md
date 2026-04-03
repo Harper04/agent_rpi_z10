@@ -3,6 +3,21 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-03 12:05 — orchestrator
+
+**Action:** Installed Cockpit web management UI with local-session SSO via Caddy
+**Reason:** Operator requested web-based system management with auth portal integration
+**Files changed:**
+- `/etc/cockpit/cockpit.conf` — proxy-aware config (origins, forwarded headers)
+- `/etc/systemd/system/cockpit-local.service` — custom unit for local-session mode
+- `/etc/caddy/sites/cockpit.caddy` — reverse proxy site config
+- `/etc/caddy/Caddyfile` — added Cockpit link to auth portal UI
+- `local/docs/apps/cockpit.md` — new app documentation
+- `local/CLAUDE.local.md` — added cockpit to app table + ports
+- `local/docs/system/network.md` — added port 9090 + updated port table
+**Verification:** cockpit-local.service active, port 9090 listening, HTTP 200 on localhost:9090, Caddy config validated and reloaded
+**Upstream proposed:** no
+
 ## 2026-04-03 11:15 — orchestrator
 
 **Action:** Updated Caddy reverse proxy for AdGuard Home from port 3000 → 7080

@@ -27,6 +27,12 @@
 | Port   | Process          | Purpose              | Exposed to       |
 |--------|------------------|----------------------|-------------------|
 | 22     | sshd             | SSH access           | Public (0.0.0.0)  |
+| 53     | AdGuard Home     | DNS service          | Public (0.0.0.0)  |
+| 80     | Caddy            | HTTP redirect        | Public (0.0.0.0)  |
+| 443    | Caddy            | HTTPS reverse proxy  | Public (0.0.0.0)  |
+| 2019   | Caddy admin      | Caddy admin API      | localhost only    |
+| 7080   | AdGuard Home     | Web UI               | localhost only    |
+| 9090   | Cockpit          | System management UI | localhost only    |
 | 53     | systemd-resolved | DNS stub resolver    | localhost only    |
 
 > Run `ss -tlnp` to refresh this table.
