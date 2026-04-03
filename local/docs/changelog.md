@@ -3,6 +3,14 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-03 10:30 — orchestrator
+
+**Action:** Added "close the loop" rule to orchestrator agent — Telegram-initiated sessions must always reply on Telegram, even for self-initiated follow-ups like `/contribute`
+**Reason:** Agent completed a `/contribute` PR (#20) but never sent a Telegram reply, leaving the operator with no feedback
+**Files changed:** `.claude/agents/orchestrator.md`
+**Verification:** Rule added, committed, pushed to origin, PR #21 opened upstream
+**Upstream proposed:** yes — https://github.com/Harper04/agent-sysadmin/pull/21
+
 ---
 
 ## 2026-04-03 09:50 — caddy
