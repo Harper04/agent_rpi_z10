@@ -49,7 +49,7 @@ if [[ -d "$SNAPSHOT_PATH" ]]; then
     log "Snapshot ${SNAPSHOT_NAME} already exists — skipping creation."
 else
     log "Creating snapshot: ${SNAPSHOT_PATH}"
-    if btrfs subvolume snapshot -r / "$SNAPSHOT_PATH" >>"$LOG_FILE" 2>&1; then
+    if sudo btrfs subvolume snapshot -r / "$SNAPSHOT_PATH" >>"$LOG_FILE" 2>&1; then
         log "Snapshot created successfully: ${SNAPSHOT_NAME}"
     else
         log "ERROR: Failed to create snapshot ${SNAPSHOT_PATH}"
@@ -83,7 +83,7 @@ for snapshot_path in "${ALL_SNAPSHOTS[@]}"; do
 
     if [[ "$snap_date" < "$CUTOFF" ]]; then
         log "Deleting expired snapshot: ${snapshot_name}"
-        if btrfs subvolume delete "$snapshot_path" >>"$LOG_FILE" 2>&1; then
+        if sudo btrfs subvolume delete "$snapshot_path" >>"$LOG_FILE" 2>&1; then
             PRUNED=$(( PRUNED + 1 ))
         else
             log "WARNING: Failed to delete ${snapshot_path}"
