@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-04-03 05:10 — orchestrator
+
+**Action:** Merged upstream (5 commits), fixed cron-runner PATH for native claude install
+**Reason:** Upstream had merged PRs; cron jobs failed because cron's minimal PATH doesn't include `~/.local/bin` where claude is installed natively
+**Files changed:**
+- Merged upstream: `scripts/cron/btrfs-snapshot.sh`, `scripts/cron/crontab.example` (sudo fixes)
+- `scripts/cron/cron-runner.sh` — added PATH expansion for `~/.local/bin`, `~/.npm-global/bin`, `/usr/local/bin`; extracts `CLAUDE_CODE_OAUTH_TOKEN` from `~/.bashrc`; fails gracefully with Telegram notification if claude not found
+**Verification:** Tested PATH + token resolution in minimal `env -i` cron-like environment — both resolve correctly
+**Upstream proposed:** yes (cron-runner fix is shared)
+
+---
+
 ## 2026-04-02 19:05 — orchestrator
 
 **Action:** Post-wizard hardening of AdGuard Home, firewall cleanup
