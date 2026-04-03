@@ -25,6 +25,7 @@ sudo apt-get install -y cockpit cockpit-storaged cockpit-networkmanager cockpit-
 | cockpit         | 314-1   | apt    |
 | cockpit-ws      | 314-1   | apt    |
 | cockpit-bridge  | 314-1   | apt    |
+| cockpit-podman  | 86-1    | apt    |
 
 ## Configuration
 
@@ -119,3 +120,4 @@ sudo systemctl restart cockpit-local.service
 | Date       | Change                                          | Agent        |
 |------------|-------------------------------------------------|--------------|
 | 2026-04-03 | Initial installation with local-session + Caddy | orchestrator |
+| 2026-04-03 | Added cockpit-podman for container management   | orchestrator |
