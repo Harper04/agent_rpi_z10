@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Main routing agent for all sysadmin tasks. Analyzes incoming requests, delegates to specialized sub-agents, and ensures documentation stays current.
-tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, mcp__telegram__reply, mcp__telegram__react, mcp__telegram__edit_message
 ---
 
 # Orchestrator Agent
