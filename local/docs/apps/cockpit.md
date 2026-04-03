@@ -109,8 +109,7 @@ sudo systemctl restart cockpit-local.service
 
 ## Known Issues & Gotchas
 
-- Default `cockpit.socket` should be masked to prevent accidental activation on port 9090
-  with built-in auth. Currently stopped but not masked (hook blocked `systemctl mask`).
+- Default `cockpit.socket` is masked (`/dev/null` symlink) to prevent accidental activation.
 - Cockpit uses WebSockets heavily — Caddy handles this natively.
 - Running as `ubuntu` user — all Cockpit sessions share this user context.
 - If cockpit-ws crashes, systemd will restart it (RestartSec=5).
