@@ -42,7 +42,8 @@ sudo apt-get install -y cockpit cockpit-storaged cockpit-networkmanager cockpit-
 - **Local-session mode:** `cockpit-ws --local-session=cockpit-bridge` — skips Cockpit's
   own authentication entirely. Auth is handled by Caddy's security portal.
 - **No TLS:** `--no-tls` — Caddy handles TLS termination.
-- **Runs as:** `ubuntu` user (has sudo access for system management).
+- **Runs as:** `root` — provides full admin access by default (no escalation needed).
+  Safe because port 9090 is localhost-only behind Caddy auth.
 - **Default cockpit.socket:** stopped, should be masked (pending operator confirmation).
 
 ### cockpit.conf
@@ -113,6 +114,8 @@ sudo systemctl restart cockpit-local.service
 - Default `cockpit.socket` is masked (`/dev/null` symlink) to prevent accidental activation.
 - Cockpit requires the `Origin` header on WebSocket handshakes — Caddy must inject it via `header_up Origin`.
 - Empty `Banner =` in cockpit.conf causes repeated log errors — omit the line entirely.
+- Must run as root for Podman to see root containers (Quadlet) and for full admin access.
+- Needs `XDG_RUNTIME_DIR` set in the systemd unit for D-Bus access.
 - Cockpit uses WebSockets heavily — Caddy handles this natively.
 - Running as `ubuntu` user — all Cockpit sessions share this user context.
 - If cockpit-ws crashes, systemd will restart it (RestartSec=5).
@@ -124,3 +127,4 @@ sudo systemctl restart cockpit-local.service
 | 2026-04-03 | Initial installation with local-session + Caddy | orchestrator |
 | 2026-04-03 | Added cockpit-podman for container management   | orchestrator |
 | 2026-04-03 | Fix 500: add Origin header_up in Caddy, remove empty Banner | orchestrator |
+| 2026-04-03 | Fix: run as root for full admin + Podman container visibility | orchestrator |
