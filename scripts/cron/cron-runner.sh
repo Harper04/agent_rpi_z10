@@ -15,8 +15,11 @@ TASK="$*"
 # Load environment
 safe_source
 
-# ── Cron PATH fix ────────────────────────────────────────────────────────────
-# Cron runs with a minimal PATH. Claude Code is typically in ~/.local/bin.
+# ── Cron PATH fix — DO NOT REMOVE ────────────────────────────────────────────
+# Cron jobs inherit a minimal PATH (usually just /usr/bin:/bin).
+# Claude Code installs to ~/.local/bin which is NOT in cron's PATH.
+# Without this block, `claude` will not be found and all scheduled tasks fail.
+# The OAuth token block is also required — cron does not source ~/.bashrc.
 CRON_USER_HOME=$(eval echo "~$(whoami)")
 for p in "$CRON_USER_HOME/.local/bin" "$CRON_USER_HOME/.npm-global/bin" "/usr/local/bin"; do
   [[ -d "$p" ]] && [[ ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
