@@ -121,10 +121,15 @@ Passkeys are registered by the user in-browser:
 When a new app needs to be added behind Caddy:
 
 1. **DNS**: Create `local/dns/records/<app>.<hostname>.tiny-systems.eu` (or confirm wildcard exists)
-2. **Site block**: Create `/etc/caddy/sites/<app>.caddy` using the template:
+2. **Site block**: Create `/etc/caddy/sites/<app>.caddy` using the template.
+   **IMPORTANT:** Include `@` annotation comments — see `caddy-site-metadata` convention in `docs/conventions.md`.
 
    **Internet (auth ON, API exempt):**
    ```caddyfile
+   # @name App Display Name
+   # @icon las la-icon-class
+   # @description Brief description
+   # @dashboard true
    <app>.<hostname>.tiny-systems.eu {
        tls {
            dns route53
@@ -141,6 +146,10 @@ When a new app needs to be added behind Caddy:
 
    **LAN (no auth):**
    ```caddyfile
+   # @name App Display Name
+   # @icon las la-icon-class
+   # @description Brief description
+   # @dashboard true
    <app>.<hostname>.zt.tiny-systems.eu {
        tls {
            dns route53
