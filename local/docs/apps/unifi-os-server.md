@@ -27,6 +27,64 @@ Prerequisites installed via apt:
 sudo apt install podman slirp4netns
 ```
 
+### Post-install: WebRTC remote access fix (ARM64 + pasta + bridge)
+
+On ARM64 with pasta networking, remote access via unifi.ui.com / mobile app
+is broken out of the box. The WebRTC addon can't gather ICE candidates because
+pasta exposes the host's `/proc/net/route` (showing `br0`) but the container
+namespace only has `eth0`. See **Known Issues** for full root cause.
+
+**1. Copy the fix script** (shared, from the template repo):
+```bash
+# Already in the repo at scripts/hooks/uos-webrtc-fix.sh
+chmod +x scripts/hooks/uos-webrtc-fix.sh
+```
+
+**2. Create a systemd service** to run it after each UOS start:
+```bash
+sudo tee /etc/systemd/system/uos-webrtc-fix.service > /dev/null <<'EOF'
+[Unit]
+Description=Create dummy br0 in UOS container for WebRTC remote access
+After=uosserver.service
+Requires=uosserver.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/<user>/sysadmin-agent/scripts/hooks/uos-webrtc-fix.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+**3. Enable and start:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now uos-webrtc-fix.service
+```
+
+**4. Verify:**
+```bash
+# Should show "active (exited)" with "br0 created in container namespace"
+sudo systemctl status uos-webrtc-fix.service
+sudo journalctl -u uos-webrtc-fix.service --no-pager
+
+# Confirm br0 exists inside container namespace
+CONMON_PID=$(pgrep -u uosserver conmon)
+CONTAINER_PID=$(pgrep -P $CONMON_PID)
+sudo nsenter -t $CONTAINER_PID -n ip addr show br0
+```
+
+> **When is this needed?** Only when ALL of these apply:
+> - ARM64 (installer auto-selects pasta networking)
+> - Host default route goes through a bridge (`br0`), not `eth0`
+> - You want remote access via unifi.ui.com or the UniFi mobile app
+>
+> If your host's default route is on `eth0` directly (no bridge), this fix
+> is not needed — the WebRTC addon will find `eth0` in both `/proc/net/route`
+> and the container namespace.
+
 ## Version
 
 | Component        | Version  | Source                       |
