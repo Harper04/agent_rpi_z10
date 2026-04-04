@@ -19,5 +19,8 @@ PATH=/usr/local/bin:/usr/bin:/bin
 # Monthly 1st 05:30 — Full inventory refresh
 30 5 1 * *   %REPO_PATH%/scripts/cron/cron-runner.sh "inventory"
 
+# Every 6 hours — Auto-merge upstream if LLM deems it safe
+30 */6 * * * %REPO_PATH%/scripts/cron/upstream-sync.sh
+
 # Daily 02:00 — btrfs snapshot + 30-day retention (no-op on non-btrfs systems)
 0 2 * * *    %REPO_PATH%/scripts/cron/btrfs-snapshot.sh
