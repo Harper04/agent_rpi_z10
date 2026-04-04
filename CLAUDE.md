@@ -168,6 +168,13 @@ When receiving a task (via Telegram or direct CLI):
 | Weekly Mon 05:00   | Backup verification       | backup          |
 | Monthly 1st 05:30  | Full inventory refresh    | orchestrator    |
 
+## System Conventions
+
+> Cross-cutting rules that all agents must follow. Check before modifying any system component.
+
+@docs/conventions.md
+@local/docs/conventions.md
+
 ## Context Files
 
 When working with a specific app, always load:

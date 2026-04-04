@@ -74,7 +74,12 @@ BLOCKED_PREFIXES=( "local/" )
 if [ ${#FILES_TO_INCLUDE[@]} -eq 0 ]; then
   echo "🔍 Auto-detecting shared file changes..."
 
+  # Collect content changes, new files, renames, AND mode-only changes
+  all_changed=$(git diff --name-only upstream/main..."$SOURCE_BRANCH" 2>/dev/null || git diff --name-only upstream/main...HEAD)
+
   while IFS= read -r file; do
+    [ -z "$file" ] && continue
+
     # Check if shared
     shared=false
     for prefix in "${SHARED_PREFIXES[@]}"; do
@@ -87,7 +92,7 @@ if [ ${#FILES_TO_INCLUDE[@]} -eq 0 ]; then
     done
 
     $shared && FILES_TO_INCLUDE+=("$file")
-  done < <(git diff --name-only upstream/main..."$SOURCE_BRANCH" 2>/dev/null || git diff --name-only upstream/main...HEAD)
+  done <<< "$all_changed"
 fi
 
 if [ ${#FILES_TO_INCLUDE[@]} -eq 0 ]; then
@@ -159,6 +164,11 @@ for file in "${FILES_TO_INCLUDE[@]}"; do
   if ! git show "${SOURCE_BRANCH}:${file}" > "$file" 2>/dev/null; then
     echo "  ⚠️  Skipping '$file' — not found in $SOURCE_BRANCH"
     continue
+  fi
+  # Preserve file permissions from source branch (catches mode-only changes)
+  src_mode=$(git ls-tree "$SOURCE_BRANCH" "$file" 2>/dev/null | awk '{print $1}')
+  if [ "$src_mode" = "100755" ]; then
+    chmod +x "$file"
   fi
   git add "$file"
 done
