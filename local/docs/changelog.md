@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-04-04 14:28 — orchestrator
+
+**Action:** Fixed WebRTC remote access for UOS on generic ARM64 hardware
+**Reason:** Remote access via Ubiquiti cloud/app was broken — WebRTC ICE gathering produced zero candidates
+**Root cause:** pasta networking exposes host's `/proc/net/route` to the container, which lists `br0` as default route. unifi-core tells the WebRTC addon `allowed_interfaces: ['br0']`. But the container namespace only has `eth0` (pasta TAP) — no `br0` exists → ICE gathering completes instantly with zero candidates → all remote connections time out.
+**Fix:** Create a dummy `br0` interface (type dummy) inside the container's network namespace with the host's br0 IP. The WebRTC addon discovers br0, binds to its IP, and traffic routes through pasta's eth0 TAP device. ICE candidates are generated, TURN relay connections succeed.
+**Persistence:** `uos-webrtc-fix.service` (systemd oneshot, enabled) runs `scripts/hooks/uos-webrtc-fix.sh` after `uosserver.service` starts. The script waits for the container's conmon→init PID, then creates the dummy br0 via `nsenter`.
+**Files changed:** scripts/hooks/uos-webrtc-fix.sh (created), local/systemd/uos-webrtc-fix.service (created), /etc/systemd/system/uos-webrtc-fix.service (installed), local/docs/apps/unifi-os-server.md (updated known issues + changelog)
+**Verification:** WebRTC logs show ICE candidates generated, TURN relay connected in 1.17s, user confirmed remote access working
+
+---
+
+## 2026-04-04 13:57 — orchestrator
+
+**Action:** UOS purge & reinstall after Pi relocation; investigated remote access failure
+**Reason:** Pi moved to new location, DHCP IP changed from .171 to .32. Ubiquiti cloud/app remote access not working.
+**Details:**
+- Purged and reinstalled UOS v5.0.6 (fresh setup wizard completed)
+- Investigated WebRTC ICE failure: pasta networking prevents WebRTC addon from generating ICE candidates (interface name mismatch: addon expects `br0`, pasta creates `eth0`)
+- Attempted host networking (port conflicts), pasta interface rename (broke network translation) — neither worked
+- Reverted to working pasta setup. Remote access remains broken on generic ARM64 hardware.
+- Recommended ZeroTier as workaround for remote access
+**Files changed:** local/docs/apps/unifi-os-server.md (updated UOS UUID, IP, known issues), local/CLAUDE.local.md (updated IP)
+**Verification:** `uosserver status` → healthy, Web UI HTTP 200 on https://192.168.2.32:11443/
+
+---
+
 ## 2026-04-02 13:45 — orchestrator
 
 **Action:** Installed Route53 DNS management service
