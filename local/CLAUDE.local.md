@@ -33,6 +33,7 @@
 |------------------|--------------|-------------|
 | route53-dns      | orchestrator | configured  |
 | adguard-home     | orchestrator | running     |
+| dashboard        | orchestrator | running     |
 | caddy            | caddy        | running     |
 | cockpit          | orchestrator | running     |
 
@@ -53,6 +54,7 @@
 | 80     | Caddy HTTP       | HTTP→HTTPS redirect    |
 | 443    | Caddy HTTPS      | Reverse proxy + auth   |
 | 7080   | AdGuard Home UI  | Localhost only, behind Caddy |
+| 3100   | Dashboard (Bun)  | Localhost only, behind Caddy |
 | 9090   | Cockpit          | Localhost only, behind Caddy |
 
 ### Local Agents

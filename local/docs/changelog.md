@@ -3,6 +3,60 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-04 11:30 — orchestrator
+
+**Action:** Made dashboard generic + wrote recipe
+**Reason:** Dashboard should be reusable across all machines. Recipe enables consistent deployment via /install.
+**Files changed:**
+- `local/dashboard/server.ts` — Removed all hardcoded hostnames. Added /api/config endpoint. DNS filters now configurable via DNS_RECORD_FILTERS env var. CADDY_SITES_DIR configurable. DASHBOARD_SUBTITLE configurable.
+- `local/dashboard/static/index.html` — Replaced hardcoded "mini-core" with dynamic config from /api/config. DNS and ZeroTier sections auto-hide when not configured.
+- `local/dashboard/static/app.js` — Added fetchConfig(), dynamic page title.
+- `local/.env` — Added DASHBOARD_SUBTITLE, DNS_RECORD_FILTERS.
+- `docs/recipes/dashboard.md` — NEW: full installation recipe with all steps, env vars, and known issues.
+- `local/docs/apps/dashboard.md` — Updated to reflect generic architecture.
+**Verification:** All APIs return correct data. Config endpoint returns hostname dynamically. DNS filters applied via env var. No hardcoded machine names remain in source.
+**Upstream proposed:** no (recipe is ready for /contribute)
+
+## 2026-04-04 10:55 — orchestrator
+
+**Action:** Added system conventions registry + dynamic service discovery
+**Reason:** Cross-cutting rules (like Caddy annotations) need a central place all agents discover automatically. Dashboard services should be auto-discovered, not hardcoded.
+**Files changed:**
+- `docs/conventions.md` — NEW: shared conventions registry (caddy-site-metadata, dns-via-skill, app-onboarding-checklist, backup-before-edit)
+- `local/docs/conventions.md` — NEW: machine-specific conventions (zerotier-not-tailscale, dashboard-port-3100)
+- `CLAUDE.md` — Added `@docs/conventions.md` and `@local/docs/conventions.md` includes
+- `.claude/agents/caddy.md` — Updated onboarding templates with @ annotation comments
+- `/etc/caddy/sites/*.caddy` — Added @name, @icon, @description, @dashboard annotations to all 4 site files
+- `local/dashboard/server.ts` — Replaced hardcoded SERVICES array with dynamic Caddy file parser (60s cache)
+**Verification:** `curl localhost:3100/api/services` returns 3 services auto-discovered from Caddy files. Auth portal correctly excluded (@dashboard false).
+**Upstream proposed:** no (conventions.md + caddy.md changes are candidates for /contribute)
+
+## 2026-04-04 09:21 — orchestrator
+
+**Action:** Increased Caddy auth session lifetime from 1 day to 30 days
+**Reason:** Operator requested longest possible login session
+**Files changed:** `/etc/caddy/Caddyfile` — token lifetime & cookie lifetime → 2592000s (30 days)
+**Verification:** `caddy reload` succeeded, service active
+**Upstream proposed:** no
+
+## 2026-04-04 08:50 — orchestrator
+
+**Action:** Created system dashboard (Bun + Alpine.js)
+**Reason:** Operator requested a modern mobile-friendly dashboard for host monitoring
+**Files changed:**
+- `local/dashboard/server.ts` — Bun HTTP server with API endpoints
+- `local/dashboard/static/index.html` — Dashboard HTML (Alpine.js)
+- `local/dashboard/static/style.css` — Dark theme, mobile-first CSS
+- `local/dashboard/static/app.js` — Frontend logic
+- `local/dashboard/dashboard.service` — systemd unit template
+- `/etc/systemd/system/mini-core-dashboard.service` — Installed systemd unit
+- `/etc/caddy/sites/default.caddy` — Changed from static file_server to reverse_proxy localhost:3100
+- `/etc/sudoers.d/dashboard-agent-restart` — Scoped sudo for agent restart
+- `local/.env` — Added ZEROTIER_API_KEY, ZEROTIER_NETWORK_ID, DASHBOARD_PORT
+- `local/docs/apps/dashboard.md` — App documentation
+**Verification:** `curl localhost:3100/api/health` returns 200 with valid JSON; all 4 API endpoints functional; Caddy returns 302 (auth redirect) for unauthenticated requests
+**Upstream proposed:** no
+
 ## 2026-04-04 04:50 — orchestrator
 
 **Action:** Fixed crontab skill names — `system-upgrade` → `upgrade`, `health-check` → `health`
