@@ -83,11 +83,21 @@ git push -u origin main
 - Claude Code OAuth token lives in `~/.bashrc` as an env export
 - No token in URLs, no global git config, no SSH keys needed
 
+**3-tier content model:**
+
+| Tier | Directory | Lives in | Purpose |
+|------|-----------|----------|---------|
+| 1. Seeds | `templates/local/` | Template repo | Generic files with placeholders. `setup.sh` copies to `local/`. Bug fixes synced via `/sync`. |
+| 2. Examples | `docs/examples/` | Template repo | Sanitized real-world docs from actual machines. Reference only — NOT copied to `local/`. |
+| 3. Live | `local/` | Machine repo ONLY | Actual configs, real hostnames/IPs. **NEVER** in the template repo. |
+
 **Rules:**
-- `local/` exists only in machine repos, never in the template.
+- `local/` exists only in machine repos, **NEVER** in the template.
 - `local/.env` and `local/logs/` are gitignored — never committed anywhere.
+- `local/.template-versions` tracks which template version each local file was synced from.
 - Improvements to shared files → `/contribute` pushes a branch to upstream.
-- Template updates → `/sync` merges from upstream/main.
+- Template updates → `/sync` merges shared files + syncs `templates/local/` → `local/`.
+- Promotable local work → sanitize and put in `docs/examples/` or `templates/local/`.
 
 ## Core Rules
 
@@ -130,12 +140,16 @@ git push -u origin main
 │   └── git/                 ← upstream sync & contribute scripts
 ├── docs/
 │   ├── apps/_template.md    ← shared template for app docs
+│   ├── conventions.md       ← shared cross-agent conventions
+│   ├── examples/            ← Tier 2: sanitized real-world reference docs
+│   ├── recipes/             ← shared app installation recipes
 │   └── runbooks/_template.md ← shared template for runbooks
 ├── templates/
-│   └── local/               ← seed files (copied to local/ by setup.sh)
+│   └── local/               ← Tier 1: seed files (copied to local/ by setup.sh)
 │
-├── local/                   ← ⚠ MACHINE-SPECIFIC — only in machine repo
+├── local/                   ← Tier 3: ⚠ MACHINE-SPECIFIC — only in machine repo
 │   ├── CLAUDE.local.md      ← machine identity & overrides
+│   ├── .template-versions   ← tracks synced template versions
 │   ├── agents/              ← local agent overrides/additions
 │   ├── docs/                ← this machine's documentation
 │   ├── .env                 ← secrets (NEVER committed)

@@ -74,7 +74,20 @@ else
 fi
 
 echo ""
-echo "✅ Sync complete."
+echo "✅ Shared files synced."
+
+# --- Sync template updates to local/ ---
+SYNC_TEMPLATES="$REPO_ROOT/scripts/git/sync-templates.sh"
+if [ -x "$SYNC_TEMPLATES" ]; then
+  echo ""
+  echo "━━━ Template → local/ sync ━━━"
+  if $DRY_RUN; then
+    "$SYNC_TEMPLATES" --dry-run
+  else
+    "$SYNC_TEMPLATES"
+  fi
+fi
+
 echo ""
 echo "Conflict resolution tips:"
 echo "  - Shared files (.claude/, scripts/): prefer upstream version"
