@@ -1,7 +1,7 @@
 # Route53 DNS Management
 
 > **Status:** ✅ Running
-> **Last verified:** 2026-04-02
+> **Last verified:** 2026-04-04
 > **Managed by agent:** `orchestrator`
 > **Installation method:** `snap` (aws-cli) + script
 > **Recipe:** `docs/recipes/route53-dns.md`
@@ -14,10 +14,11 @@ Uses owner tags for safe multi-system shared hosted zones.
 
 ## Version
 
-| Component    | Version    | Source |
-|--------------|------------|--------|
-| aws-cli      | `2.34.22`  | snap   |
-| dns-sync.sh  | shared     | git    |
+| Component          | Version    | Source |
+|--------------------|------------|--------|
+| aws-cli            | `2.34.22`  | snap   |
+| dns-sync.sh        | shared     | git    |
+| dns-ip-update.sh   | shared     | git    |
 
 ## Configuration
 
@@ -32,11 +33,13 @@ Uses owner tags for safe multi-system shared hosted zones.
 
 ### Config files
 
-| File                         | Purpose              |
-|------------------------------|----------------------|
-| `local/dns/dns.conf`        | Owner tag & TTL      |
-| `local/dns/records/`        | Record files (1/FQDN)|
-| `local/.env`                | AWS credentials      |
+| File                         | Purpose                        |
+|------------------------------|--------------------------------|
+| `local/dns/dns.conf`        | Owner tag, TTL, IP_RECORD_MAP  |
+| `local/dns/records/`        | Record files (1/FQDN)          |
+| `local/.env`                | AWS credentials                |
+| `scripts/dns/dns-ip-update.sh`     | Dynamic DNS update script      |
+| `scripts/dns/networkd-dns-update.sh` | networkd-dispatcher hook     |
 
 ## Network
 
@@ -83,14 +86,50 @@ scripts/dns/dns-sync.sh --dry-run
 /dns list
 ```
 
+## Dynamic DNS (IP Change Detection)
+
+Records are automatically updated when interface IPs change via two triggers:
+
+### networkd-dispatcher (primary)
+Fires when an interface reaches "routable" state (DHCP lease obtained, link up).
+```bash
+# Installed at:
+/etc/networkd-dispatcher/routable.d/50-dns-update
+# Source:
+scripts/dns/networkd-dns-update.sh
+```
+
+### Installation (part of DNS recipe)
+```bash
+sudo cp scripts/dns/networkd-dns-update.sh /etc/networkd-dispatcher/routable.d/50-dns-update
+sudo chmod +x /etc/networkd-dispatcher/routable.d/50-dns-update
+```
+
+### Configuration
+Add `IP_RECORD_MAP` to `local/dns/dns.conf`:
+```bash
+# Interface-to-FQDN mapping for dynamic DNS updates.
+# Format: "iface=fqdn iface=fqdn ..."
+# Use + suffix for prefix matching (e.g. zt+ matches zt0, ztly7nnh6j)
+IP_RECORD_MAP="br0=app.example.com zt+=app.zt.example.com"
+```
+
+### Manual test
+```bash
+scripts/dns/dns-ip-update.sh --dry-run   # show what would change
+scripts/dns/dns-ip-update.sh             # apply changes
+```
+
 ## Known Issues & Gotchas
 
 - Owner tag (`_owner.<fqdn>` TXT records) prevents deleting records managed by other machines.
 - Route53 API: 5 req/sec rate limit — batched per zone.
 - AWS credentials in `local/.env` (gitignored, never committed).
+- networkd-dispatcher must be enabled (`systemctl enable networkd-dispatcher`).
 
 ## Changelog (app-specific)
 
 | Date       | Change                                  | Agent        |
 |------------|-----------------------------------------|--------------|
 | 2026-04-02 | Initial install: aws-cli 2.34.22, zone tiny-systems.eu | orchestrator |
+| 2026-04-04 | Added dynamic DNS: dns-ip-update.sh + networkd-dispatcher hook | orchestrator |

@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-04 15:56 — orchestrator
+
+**Action:** Added dynamic DNS update on IP change
+**Reason:** DNS records in Route53 were stale after Pi relocation (192.168.2.171 → 192.168.2.32)
+**Details:**
+- Created `scripts/dns/dns-ip-update.sh` — compares interface IPs to record files, updates + syncs on change
+- Created `scripts/dns/networkd-dns-update.sh` — networkd-dispatcher hook, fires on interface routable state
+- Installed hook to `/etc/networkd-dispatcher/routable.d/50-dns-update`
+- Added `IP_RECORD_MAP` to `local/dns/dns.conf` mapping br0 and zt+ to their FQDNs
+- Fixed stale record: z10.local.tiny-systems.eu A 192.168.2.171 → 192.168.2.32
+- Route53 updated successfully (change C063814024QCP6D6VOGIZ)
+**Files changed:** scripts/dns/dns-ip-update.sh (created), scripts/dns/networkd-dns-update.sh (created), local/dns/dns.conf (updated), local/dns/records/z10.local.tiny-systems.eu (updated), local/docs/apps/route53-dns.md (updated)
+**Verification:** dry-run detected stale IP, live run updated Route53
+
+---
+
 ## 2026-04-04 14:28 — orchestrator
 
 **Action:** Fixed WebRTC remote access for UOS on generic ARM64 hardware
