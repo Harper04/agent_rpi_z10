@@ -41,8 +41,11 @@ if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]]; then
     mkdir -p "$(dirname "$TELE_ENV")"
     if ! grep -q "TELEGRAM_BOT_TOKEN=" "$TELE_ENV" 2>/dev/null; then
         printf 'TELEGRAM_BOT_TOKEN=%s\n' "$TELEGRAM_BOT_TOKEN" >> "$TELE_ENV"
-        chmod 600 "$TELE_ENV"
     fi
+    if [[ -n "${TELEGRAM_CHAT_ID:-}" ]] && ! grep -q "TELEGRAM_CHAT_ID=" "$TELE_ENV" 2>/dev/null; then
+        printf 'TELEGRAM_CHAT_ID=%s\n' "$TELEGRAM_CHAT_ID" >> "$TELE_ENV"
+    fi
+    chmod 600 "$TELE_ENV"
 fi
 
 GREEN='\033[1;32m'
