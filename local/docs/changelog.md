@@ -3,6 +3,15 @@
 > Append-only log of all changes made to this system by the sysadmin agent.
 > Newest entries at the top.
 
+## 2026-04-04 04:50 — orchestrator
+
+**Action:** Fixed crontab skill names — `system-upgrade` → `upgrade`, `health-check` → `health`
+**Reason:** Scheduled task failed with "Unknown skill: system-upgrade" — crontab was using skill names instead of command names
+**Files changed:**
+- crontab (ubuntu user)
+**Verification:** `crontab -l` shows corrected command names matching `.claude/commands/`
+**Upstream proposed:** no (crontab is machine-specific, but `scripts/cron/cron-runner.sh` docs should note command vs skill naming)
+
 ## 2026-04-03 12:49 — orchestrator
 
 **Action:** Contributed Cockpit recipe to upstream template repo
