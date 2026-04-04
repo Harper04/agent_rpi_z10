@@ -13,7 +13,7 @@ backup: true
 # Recipe: UniFi OS Server
 
 > Tested on: Ubuntu 22.04+ (amd64, arm64)
-> Last updated: 2026-04-02
+> Last updated: 2026-04-04
 
 ## Overview
 
@@ -100,6 +100,47 @@ curl -sk https://localhost:11443/api/ping
 - Create an admin account and adopt Ubiquiti devices
 - Optionally add user to uosserver group: `sudo usermod -aG uosserver <username>`
 
+### WebRTC remote access fix (ARM64 + pasta + bridge)
+
+On ARM64, the installer auto-selects pasta networking. If the host's default
+route goes through a bridge (`br0`), remote access via unifi.ui.com / mobile
+app is broken: the WebRTC addon reads the host's `/proc/net/route` (exposed
+by pasta), sees `br0`, but the container namespace only has `eth0`. ICE
+gathering finds zero candidates and connections time out.
+
+**Skip this section** if:
+- Your architecture is amd64, or
+- Your host's default route is on `eth0` directly (no bridge)
+
+**Install the fix:**
+```bash
+# The fix script is already in the repo
+chmod +x scripts/hooks/uos-webrtc-fix.sh
+
+# Install the systemd service (adjusts path automatically)
+REPO_PATH="$(pwd)"
+sed "s|%REPO_PATH%|$REPO_PATH|g" templates/local/systemd/uos-webrtc-fix.service \
+  | sudo tee /etc/systemd/system/uos-webrtc-fix.service > /dev/null
+
+# Also keep a local copy for reference
+mkdir -p local/systemd
+sed "s|%REPO_PATH%|$REPO_PATH|g" templates/local/systemd/uos-webrtc-fix.service \
+  > local/systemd/uos-webrtc-fix.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now uos-webrtc-fix.service
+```
+
+**Verify:**
+```bash
+sudo systemctl status uos-webrtc-fix.service
+# Should show "active (exited)" with "br0 created in container namespace"
+
+CONMON_PID=$(pgrep -u uosserver conmon)
+CONTAINER_PID=$(pgrep -P $CONMON_PID)
+sudo nsenter -t $CONTAINER_PID -n ip addr show br0
+```
+
 ## Known Issues
 
 - **Installer syntax**: Run the binary directly without arguments. Do not pass `install`.
@@ -109,3 +150,4 @@ curl -sk https://localhost:11443/api/ping
 - **Updates**: Handled via the web UI or the built-in `uosserver-updater.service`.
 - **Uninstall**: `sudo uosserver-purge` removes everything including data.
 - **Legacy migration deadline**: November 2026 for migrating from legacy UniFi Network Application.
+- **Remote access on ARM64 with pasta + bridge**: See Post-Install → WebRTC fix above.

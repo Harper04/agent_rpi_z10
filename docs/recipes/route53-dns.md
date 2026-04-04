@@ -13,7 +13,7 @@ backup: true
 # Recipe: Route53 DNS Management
 
 > Tested on: Ubuntu 24.04+
-> Last updated: 2026-04-02
+> Last updated: 2026-04-04
 
 ## Overview
 
@@ -35,14 +35,12 @@ shared hosted zones.
 # Install AWS CLI v2
 sudo snap install aws-cli --classic
 
-# Create record directory
+# Seed config from template (if not already present)
+cp -n templates/local/dns/dns.conf local/dns/dns.conf
 mkdir -p local/dns/records
 
-# Write config (adjust OWNER_TAG to this machine's hostname)
-cat > local/dns/dns.conf << 'EOF'
-OWNER_TAG="$(hostname -s)"
-DEFAULT_TTL=300
-EOF
+# Edit local/dns/dns.conf — set OWNER_TAG to this machine's hostname
+$EDITOR local/dns/dns.conf
 
 # Add AWS credentials to local/.env
 cat >> local/.env << 'EOF'
@@ -77,12 +75,13 @@ MX    20 mail2.example.com
 
 ### Config file
 
-`local/dns/dns.conf`:
+`local/dns/dns.conf` (seed from `templates/local/dns/dns.conf`):
 
-| Variable      | Default       | Purpose                           |
-|---------------|---------------|-----------------------------------|
-| `OWNER_TAG`   | `$(hostname)` | Identifies records owned by this machine |
-| `DEFAULT_TTL` | `300`         | Default TTL if not set per-file   |
+| Variable        | Default       | Purpose                           |
+|-----------------|---------------|-----------------------------------|
+| `OWNER_TAG`     | `$(hostname)` | Identifies records owned by this machine |
+| `DEFAULT_TTL`   | `300`         | Default TTL if not set per-file   |
+| `IP_RECORD_MAP` | (empty)       | Interface-to-FQDN mappings for dynamic DNS (see below) |
 
 ### Environment variables (in local/.env)
 
@@ -108,6 +107,31 @@ scripts/dns/dns-sync.sh --dry-run
 2. Create your first record file in `local/dns/records/`
 3. Run `/dns diff` to verify detection
 4. Run `/dns sync` to apply
+
+### Dynamic DNS (automatic IP change detection)
+
+Automatically updates DNS records when interface IPs change (DHCP lease
+renewal, reboot on a different network). Requires `networkd-dispatcher`.
+
+**1. Configure interface-to-FQDN mappings** in `local/dns/dns.conf`:
+```bash
+# Append to existing dns.conf — adjust to your interfaces and FQDNs
+# Use + suffix for prefix matching (e.g. zt+ matches zt0, ztly7nnh6j)
+IP_RECORD_MAP="br0=app.example.com zt+=app.zt.example.com"
+```
+
+**2. Install the networkd-dispatcher hook:**
+```bash
+sudo cp scripts/dns/networkd-dns-update.sh /etc/networkd-dispatcher/routable.d/50-dns-update
+sudo chmod +x /etc/networkd-dispatcher/routable.d/50-dns-update
+sudo systemctl enable networkd-dispatcher
+```
+
+**3. Verify:**
+```bash
+scripts/dns/dns-ip-update.sh --dry-run       # check for stale IPs
+sudo journalctl -t dns-update --since "10 min ago"  # after a network event
+```
 
 ## Known Issues
 
