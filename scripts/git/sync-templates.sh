@@ -71,7 +71,7 @@ for rel in "${TEMPLATE_FILES[@]}"; do
   template_hash=$(git hash-object "$template_file" 2>/dev/null || md5sum "$template_file" | awk '{print $1}')
 
   # Get the hash recorded when this file was last synced
-  recorded_hash=$(grep "^${rel}=" "$VERSIONS_FILE" 2>/dev/null | head -1 | cut -d= -f2-)
+  recorded_hash=$(grep "^${rel}=" "$VERSIONS_FILE" 2>/dev/null | head -1 | cut -d= -f2- || true)
 
   if [ ! -f "$local_file" ]; then
     # File doesn't exist locally — new template file
