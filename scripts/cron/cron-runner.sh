@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# cron-runner.sh — Runs a Claude Code command on schedule and logs output.
+# cron-runner.sh — Runs a task via the orchestrator agent on schedule and logs output.
 #
 # Usage in crontab:
-#   0 3 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "system-upgrade --security-only --unattended"
-#   0 6 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "health-check"
+#   0 3 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "upgrade --security-only --unattended"
+#   0 6 * * *  /path/to/sysadmin-agent/scripts/cron/cron-runner.sh "health"
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ LOG_FILE="$LOG_DIR/cron-$(date +%Y%m%d-%H%M%S).log"
 echo "[$TIMESTAMP] Running scheduled task: $TASK" | tee "$LOG_FILE"
 
 cd "$REPO_ROOT"
-OUTPUT=$(claude --agent orchestrator -p "/$TASK" --output-format text 2>&1) || true
+OUTPUT=$(claude --agent orchestrator -p "$TASK" --output-format text 2>&1) || true
 echo "$OUTPUT" >> "$LOG_FILE"
 
 # Notify via Telegram if configured
