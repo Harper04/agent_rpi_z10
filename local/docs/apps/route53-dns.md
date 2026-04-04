@@ -15,63 +15,8 @@ detected automatically via networkd-dispatcher and synced to Route53.
 
 ## Installation
 
-### 1. Install aws-cli and jq
-```bash
-sudo snap install aws-cli --classic
-sudo apt install -y jq
-```
-
-### 2. Configure AWS credentials
-Add to `local/.env`:
-```bash
-AWS_ACCESS_KEY_ID=<your-key>
-AWS_SECRET_ACCESS_KEY=<your-secret>
-AWS_DEFAULT_REGION=eu-central-1
-```
-
-### 3. Configure dns.conf
-Create `local/dns/dns.conf`:
-```bash
-OWNER_TAG="<hostname>"       # unique per machine, used for ownership TXT records
-DEFAULT_TTL=300
-
-# Interface-to-FQDN mapping for dynamic DNS updates.
-# Format: "iface=fqdn iface=fqdn ..."
-# Use + suffix for prefix matching (e.g. zt+ matches zt0, ztly7nnh6j)
-IP_RECORD_MAP="br0=app.example.com zt+=app.zt.example.com"
-```
-
-### 4. Add DNS record files
-One file per FQDN in `local/dns/records/`:
-```bash
-# Example: local/dns/records/app.example.com
-A 192.168.2.32
-```
-
-### 5. Verify access and sync
-```bash
-aws route53 list-hosted-zones --output text | head -5
-scripts/dns/dns-sync.sh --dry-run    # check plan
-scripts/dns/dns-sync.sh              # apply
-```
-
-### 6. Install networkd-dispatcher hook (dynamic DNS)
-This hook automatically updates DNS records when interface IPs change
-(e.g. DHCP lease renewal, reboot on a different network).
-```bash
-sudo cp scripts/dns/networkd-dns-update.sh /etc/networkd-dispatcher/routable.d/50-dns-update
-sudo chmod +x /etc/networkd-dispatcher/routable.d/50-dns-update
-sudo systemctl enable networkd-dispatcher
-```
-
-Verify the hook works:
-```bash
-# Manual test — should detect any stale IPs
-scripts/dns/dns-ip-update.sh --dry-run
-
-# Check dispatcher logs after a network event
-sudo journalctl -t dns-update --since "10 min ago"
-```
+Installed per `docs/recipes/route53-dns.md`, including the dynamic DNS
+post-install section.
 
 ## Version
 
