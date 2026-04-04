@@ -223,6 +223,18 @@ if [ ! -f local/CLAUDE.local.md ] || $FORCE; then
   mkdir -p local
   cp -r templates/local/* local/ 2>/dev/null || true
   echo "  ✅ local/ seeded from templates/local/"
+
+  # Record template versions for future sync-templates.sh tracking
+  VERSIONS_FILE="local/.template-versions"
+  : > "$VERSIONS_FILE"
+  while IFS= read -r -d '' f; do
+    rel="${f#templates/local/}"
+    [[ "$rel" == *".gitkeep" ]] && continue
+    hash=$(git hash-object "$f" 2>/dev/null || md5sum "$f" | awk '{print $1}')
+    echo "${rel}=${hash}" >> "$VERSIONS_FILE"
+  done < <(find templates/local -type f -print0 2>/dev/null || true)
+  sort -o "$VERSIONS_FILE" "$VERSIONS_FILE"
+  echo "  ✅ Template versions recorded in local/.template-versions"
 else
   echo "  ℹ️  local/ already exists (use --force to re-seed)"
 fi
