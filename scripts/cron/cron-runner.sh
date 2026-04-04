@@ -15,6 +15,32 @@ TASK="$*"
 # Load environment
 safe_source
 
+# ── Cron PATH fix — DO NOT REMOVE ────────────────────────────────────────────
+# Cron jobs inherit a minimal PATH (usually just /usr/bin:/bin).
+# Claude Code installs to ~/.local/bin which is NOT in cron's PATH.
+# Without this block, `claude` will not be found and all scheduled tasks fail.
+# The OAuth token block is also required — cron does not source ~/.bashrc.
+CRON_USER_HOME=$(eval echo "~$(whoami)")
+for p in "$CRON_USER_HOME/.local/bin" "$CRON_USER_HOME/.npm-global/bin" "/usr/local/bin"; do
+  [[ -d "$p" ]] && [[ ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
+done
+
+# Source CLAUDE_CODE_OAUTH_TOKEN if not already set
+if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+  token_line=$(grep -m1 '^export CLAUDE_CODE_OAUTH_TOKEN=' "$CRON_USER_HOME/.bashrc" 2>/dev/null || true)
+  [[ -n "$token_line" ]] && eval "$token_line"
+fi
+
+# Verify claude is reachable
+if ! command -v claude &>/dev/null; then
+  echo "ERROR: claude binary not found in PATH=$PATH" >&2
+  telegram_send "❌ *Cron task failed*
+Host: \`${HOSTNAME_SHORT}\`
+Task: \`$TASK\`
+Error: \`claude\` not found in PATH"
+  exit 1
+fi
+
 TIMESTAMP=$(date -Is)
 LOG_FILE="$LOG_DIR/cron-$(date +%Y%m%d-%H%M%S).log"
 
