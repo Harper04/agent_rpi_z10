@@ -12,8 +12,36 @@ source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh" && common_init "$0"
 
 TASK="$*"
 
-# Load environment
+# Load environment (.env for Telegram tokens, GitHub PAT, etc.)
 safe_source
+
+# ── Resolve claude binary ────────────────────────────────────────────────────
+# Cron runs with a minimal PATH that doesn't include user-local installs.
+# Claude Code is typically installed to ~/.local/bin (native installer) or
+# ~/.npm-global/bin (npm). We also need CLAUDE_CODE_OAUTH_TOKEN from ~/.bashrc.
+CRON_USER_HOME=$(eval echo "~$(whoami)")
+
+# Expand PATH for common install locations
+for p in "$CRON_USER_HOME/.local/bin" "$CRON_USER_HOME/.npm-global/bin" "/usr/local/bin"; do
+  [[ -d "$p" ]] && [[ ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
+done
+
+# Source CLAUDE_CODE_OAUTH_TOKEN if not already set (lives in ~/.bashrc)
+if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+  # Extract just the token export line — don't source the whole .bashrc
+  token_line=$(grep -m1 '^export CLAUDE_CODE_OAUTH_TOKEN=' "$CRON_USER_HOME/.bashrc" 2>/dev/null || true)
+  [[ -n "$token_line" ]] && eval "$token_line"
+fi
+
+# Verify claude is reachable
+if ! command -v claude &>/dev/null; then
+  echo "ERROR: claude binary not found in PATH=$PATH" >&2
+  telegram_send "❌ *Cron task failed*
+Host: \`${HOSTNAME_SHORT}\`
+Task: \`$TASK\`
+Error: \`claude\` not found in PATH"
+  exit 1
+fi
 
 TIMESTAMP=$(date -Is)
 LOG_FILE="$LOG_DIR/cron-$(date +%Y%m%d-%H%M%S).log"
