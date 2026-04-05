@@ -120,17 +120,30 @@ If not → report remaining diffs and why they weren't contributed.
 After shared diffs are clean, scan local/ for content worth promoting:
 
 ### Promote to templates/local/ (Tier 1)
-Local source code that's generic enough for all machines:
+Local source code that's generic enough for all machines.
+
+**New files** — exist in local/ but not in templates/local/:
 ```bash
-# Compare local/ files against templates/local/ — find local files with
-# no template counterpart that could be useful seeds
 diff -rq local/ templates/local/ 2>/dev/null | grep "Only in local"
 ```
 
-If a local file (e.g., a new tool, script, or config) is generic:
-1. Sanitize: replace hostnames/IPs with placeholders
+**Diverged files** — exist in both but local/ has improvements the template lacks:
+```bash
+# Find files that differ between local/ and templates/local/
+# Excludes: .env, logs/, changelog, CLAUDE.local.md, .template-versions
+diff -rq local/ templates/local/ 2>/dev/null | grep "^Files" | grep "differ" \
+  | grep -v '.env\|logs/\|changelog\|CLAUDE.local\|.template-versions'
+```
+
+For each diverged file, check whether the local version has **universal improvements**
+(new features, bug fixes, better UX) vs. **machine-specific customization** (hardcoded
+hostnames, IPs, paths). Universal improvements should be synced back to the template.
+
+**For both new and diverged files:**
+1. Sanitize: replace hostnames/IPs with placeholders (e.g., `TODO-HOSTNAME`)
 2. Copy to `templates/local/`
 3. Include in the contribution PR
+4. The propose-upstream script will accept `templates/local/` files (they're shared)
 
 ### Promote to docs/examples/ (Tier 2)
 Local app docs that are well-written and could help other machines:
