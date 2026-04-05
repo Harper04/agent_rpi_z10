@@ -4,8 +4,8 @@ method: binary
 version: "latest"
 ports: [8123]
 dependencies: [qemu-system-arm, qemu-efi-aarch64, qemu-utils, libvirt-daemon-system, libvirt-clients, virtinst, bridge-utils]
-reverse-proxy: false
-domain: ""
+reverse-proxy: true
+domain: "ha.{{ ZONE }}"
 data-paths: ["/var/lib/libvirt/images"]
 backup: true
 ---
@@ -83,7 +83,7 @@ sudo virt-install \
   --name haos \
   --description "Home Assistant OS" \
   --os-variant generic \
-  --ram 4096 \
+  --ram 2560 \
   --memorybacking allocation.mode=ondemand \
   --vcpus 2 \
   --disk /var/lib/libvirt/images/haos_${HAOS_ARCH}-${HAOS_VERSION}.qcow2,bus=scsi \
@@ -105,7 +105,7 @@ sudo virsh autostart haos
 | Setting       | Value            | Notes                          |
 |---------------|------------------|--------------------------------|
 | vCPUs         | 2                | Adjust based on workload       |
-| RAM           | 4096 MB          | On-demand allocation           |
+| RAM           | 2560 MB          | On-demand alloc; 4 GB wastes host RAM |
 | Disk          | 32 GB qcow2      | Grows as needed                |
 | Network       | bridge br0       | VM gets own LAN IP via DHCP    |
 | Boot          | UEFI (no secure boot) | Required for HAOS         |
@@ -140,10 +140,71 @@ curl -sk -o /dev/null -w "%{http_code}" http://{{ VM_IP }}:8123/
 - Create a Home Assistant user account
 - Consider setting a static DHCP lease for the VM's MAC address
 
+## Reverse Proxy (Caddy)
+
+HA runs on its own IP (bridge network), so Caddy proxies to a non-localhost address.
+HA also requires trusted_proxies config to accept forwarded headers from Caddy.
+
+### Caddy site block
+
+```bash
+# /etc/caddy/sites/home-assistant.caddy
+# @name Home Assistant
+# @icon las la-home
+# @description Home automation platform
+# @dashboard true
+ha.{{ ZONE }}, ha.{{ ZT_ZONE }} {
+    tls {
+        dns route53
+    }
+    reverse_proxy http://{{ VM_IP }}:8123
+}
+```
+
+Use the `/caddy-onboard-app` skill:
+```
+/caddy-onboard-app home-assistant --port 8123 --host {{ VM_IP }} --zt --no-auth
+```
+
+### HA trusted_proxies config
+
+HA rejects `X-Forwarded-For` from untrusted IPs with HTTP 400. Add the host's
+bridge IP and primary IP to HA's `configuration.yaml`:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - {{ HOST_BRIDGE_IP }}
+    - {{ HOST_PRIMARY_IP }}
+```
+
+To edit `configuration.yaml` on HAOS:
+1. Install the SSH & Web Terminal addon via HA supervisor API (WebSocket)
+2. Configure with an authorized SSH key, expose port temporarily
+3. SSH in: `ssh -p 22222 root@{{ VM_IP }}`
+4. Edit `/config/configuration.yaml`
+5. Validate: `POST /api/config/core/check_config`
+6. Restart HA Core: `POST /api/services/homeassistant/restart`
+7. Disable SSH port exposure after done
+
+### HA API access
+
+Create a long-lived access token in HA (Profile → Security → Long-lived access tokens).
+Save to `local/.env` as `HA_TOKEN`. The HA supervisor WebSocket API (`ws://{{ VM_IP }}:8123/api/websocket`)
+provides addon management that the REST API does not.
+
 ## Known Issues
 
-- **On-demand memory**: `virsh dominfo` shows full 4 GB as "Used memory" but actual
-  host consumption is only what the guest touches (~700 MB idle).
+- **On-demand memory**: `virsh dominfo` shows full allocation as "Used memory" but
+  actual host consumption is only what the guest touches. Even so, HAOS will gradually
+  touch most of the ceiling — set `--ram` to what you can actually spare (2-2.5 GB is
+  fine for most setups; 4 GB wastes host RAM on small machines).
+- **No balloon driver**: HAOS has no virtio-balloon, so RAM cannot be hot-adjusted.
+  Changing RAM requires a full VM power cycle (`virsh destroy` + `virsh start`).
+  `virsh reboot` does NOT apply config changes — only `destroy + start` does.
+- **ACPI shutdown ignored**: HAOS may ignore `virsh shutdown` (ACPI signal). Use
+  `virsh destroy` for reliable power-off (requires operator confirmation).
 - **OTA reboot**: HAOS updates may fail to reboot in KVM. Manual `sudo virsh reboot haos` resolves it.
 - **No GPIO**: GPIO is host-only, not accessible from KVM guests.
 - **No built-in Bluetooth**: Use a USB BT dongle and pass it through to the VM.

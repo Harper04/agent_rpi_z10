@@ -78,8 +78,8 @@ async function discoverServices(): Promise<Service[]> {
       // Skip if not marked for dashboard
       if (annotations.dashboard !== "true") continue;
 
-      // Extract domain from first site block: "domain.com {"
-      const domainMatch = content.match(/^([a-zA-Z0-9][\w.-]+\.[a-z]{2,})\s*\{/m);
+      // Extract domain from first site block: "domain.com {" or "domain.com, domain2.com {"
+      const domainMatch = content.match(/^([a-zA-Z0-9][\w.-]+\.[a-z]{2,})\s*[,{]/m);
       if (!domainMatch) continue;
 
       const domain = domainMatch[1];
