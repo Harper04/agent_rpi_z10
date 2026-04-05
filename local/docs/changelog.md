@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-04-05 10:02 — orchestrator
+
+**Action:** Reduced Home Assistant VM RAM from 4 GB to 2.5 GB
+**Reason:** Host RAM nearly full (346 MB available). HAOS on-demand allocation still consumed most of the 4 GB ceiling.
+**Details:**
+- Set VM max memory to 2621440 KiB (2.5 GB) via virsh setmaxmem/setmem --config
+- Required full VM power cycle (destroy + start) — HAOS lacks balloon driver and ignores ACPI shutdown
+- Freed ~1.5 GB host RAM (available went from 346 MB to 1.8 GB)
+**Files changed:** VM XML config (libvirt), local/docs/apps/home-assistant.md
+**Verification:** All 3 HA access paths return HTTP 200
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-05 09:32 — orchestrator
 
 **Action:** Added ZeroTier access for Home Assistant

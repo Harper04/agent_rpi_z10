@@ -72,7 +72,7 @@ sudo virsh autostart haos
 | Web UI (Caddy) | `https://ha.z10.local.tiny-systems.eu`         |
 | Web UI (ZT)    | `https://ha.z10.zt.tiny-systems.eu`            |
 | vCPUs          | 2                                              |
-| RAM (max)      | 4096 MB                                        |
+| RAM (max)      | 2560 MB (reduced from 4096)                    |
 | RAM allocation | on-demand (lazy — only touched pages used)     |
 | Disk           | 32 GB qcow2 (virtio-scsi)                     |
 | Network        | bridge br0 (virtio)                            |
@@ -240,6 +240,7 @@ Proxied through Caddy at `https://ha.z10.local.tiny-systems.eu`.
 
 | Date       | Change                                              | Agent        |
 |------------|-----------------------------------------------------|--------------|
+| 2026-04-05 | Reduced VM RAM from 4 GB to 2.5 GB                  | orchestrator |
 | 2026-04-05 | Added Caddy reverse proxy + DNS + trusted_proxies   | orchestrator |
 | 2026-04-05 | Installed core_ssh addon for config management       | orchestrator |
 | 2026-04-02 | Initial install HAOS 17.1 in KVM with br0 bridge   | orchestrator |
