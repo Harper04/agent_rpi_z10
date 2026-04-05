@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-04-05 14:33 — orchestrator
+
+**Action:** Added ZeroTier domain for dashboard
+**Reason:** `z10.zt.tiny-systems.eu` resolved to ZT IP but had no Caddy site block — connection refused from ZT network
+**Fix:** Added `z10.zt.tiny-systems.eu` to dashboard site block in `/etc/caddy/sites/default.caddy` (comma-separated, same pattern as HA and UniFi)
+**Files changed:** /etc/caddy/sites/default.caddy
+**Verification:** TLS cert obtained via DNS-01, HTTPS 200 confirmed
+
+---
+
+## 2026-04-05 14:27 — orchestrator
+
+**Action:** Synced upstream template (9 commits)
+**Details:**
+- Contribute skill: detect diverged template files in Tier 1 scan
+- Dashboard UI: compact DNS tree, clickable domains, A+AAAA merge
+- README rewrite in English
+- Added *.bak.* to .gitignore
+- Fixed UniFi proxy recipe (WebSocket + HTTP/1.1)
+- Updated local/docs/apps/_template.md with new reverse proxy section
+**Files changed:** .claude/commands/contribute.md, .gitignore, README.md, templates/local/dashboard/*, local/dashboard/*, local/docs/apps/_template.md
+
+---
+
 ## 2026-04-05 13:44 — orchestrator
 
 **Action:** Fixed UniFi Caddy reverse proxy (WebSocket + redirects)
