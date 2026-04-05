@@ -10,6 +10,13 @@ user-invocable: true
 Manage DNS records declaratively. Records are defined as files in `local/dns/records/`,
 then synced to AWS Route53 via `scripts/dns/dns-sync.sh`.
 
+## Policy: Explicit Records Only
+
+Every virtual hostname served by Caddy MUST have its own explicit DNS record file.
+Do NOT rely on wildcard DNS records for hostname resolution — wildcards may exist for
+TLS cert issuance only. When onboarding a new app, always create a CNAME (LAN) or
+A/AAAA (internet) record for it.
+
 ## File Format
 
 Each file in `local/dns/records/` is named after the FQDN (e.g. `app.example.com`).

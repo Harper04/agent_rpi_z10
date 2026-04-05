@@ -63,22 +63,26 @@ grep -r "${DOMAIN}" /etc/caddy/sites/ 2>/dev/null && echo "WARNING: Domain alrea
 
 ## Phase 2 — DNS Record
 
-Check if a wildcard CNAME covers this domain:
+Always create an explicit DNS record for the new app. Do NOT rely on wildcard DNS
+records — wildcards may exist for TLS cert issuance but every virtual hostname must
+have its own explicit record.
+
+For LAN apps, use a CNAME pointing to the host's base FQDN. For internet apps, use
+an A/AAAA record with the public IP.
 
 ```bash
-# Check if wildcard exists
-if [ -f "local/dns/records/*.${ZONE}" ]; then
-    echo "Wildcard DNS record exists — no new record needed"
-else
-    # Create DNS record
-    echo "A     $(curl -s4 ifconfig.me)" > "local/dns/records/${DOMAIN}"
-    echo "AAAA  $(ip -6 addr show scope global | grep inet6 | head -1 | awk '{print $2}' | cut -d/ -f1)" >> "local/dns/records/${DOMAIN}"
-    
-    # Sync DNS
-    scripts/dns/dns-sync.sh --dry-run
-    # Show plan, confirm, then:
-    scripts/dns/dns-sync.sh
-fi
+# LAN flavor — CNAME to base host record
+BASE_FQDN="${HOSTNAME}.local.tiny-systems.eu"  # or .zt. variant
+echo "CNAME ${BASE_FQDN}" > "local/dns/records/${DOMAIN}"
+
+# Internet flavor — A/AAAA with public IP
+# echo "A     $(curl -s4 ifconfig.me)" > "local/dns/records/${DOMAIN}"
+# echo "AAAA  $(ip -6 addr show scope global | grep inet6 | head -1 | awk '{print $2}' | cut -d/ -f1)" >> "local/dns/records/${DOMAIN}"
+
+# Sync DNS
+scripts/dns/dns-sync.sh --dry-run
+# Show plan, confirm, then:
+scripts/dns/dns-sync.sh
 ```
 
 ## Phase 3 — Create Site Block
