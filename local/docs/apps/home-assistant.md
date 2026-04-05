@@ -70,6 +70,7 @@ sudo virsh autostart haos
 | VM IP          | `192.168.2.174` (DHCP from router)             |
 | Web UI         | `http://192.168.2.174:8123`                    |
 | Web UI (Caddy) | `https://ha.z10.local.tiny-systems.eu`         |
+| Web UI (ZT)    | `https://ha.z10.zt.tiny-systems.eu`            |
 | vCPUs          | 2                                              |
 | RAM (max)      | 4096 MB                                        |
 | RAM allocation | on-demand (lazy — only touched pages used)     |
@@ -207,6 +208,7 @@ Proxied through Caddy at `https://ha.z10.local.tiny-systems.eu`.
 
 - **Site block:** `/etc/caddy/sites/home-assistant.caddy`
 - **DNS:** `ha.z10.local.tiny-systems.eu` → CNAME → `z10.local.tiny-systems.eu`
+- **DNS (ZT):** `ha.z10.zt.tiny-systems.eu` → CNAME → `z10.zt.tiny-systems.eu`
 - **Auth:** OFF (HA has its own auth)
 - **trusted_proxies:** configured in HA `configuration.yaml`:
   ```yaml

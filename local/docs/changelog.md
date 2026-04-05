@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-04-05 09:32 — orchestrator
+
+**Action:** Added ZeroTier access for Home Assistant
+**Reason:** Enable remote HA access via ZeroTier network
+**Details:**
+- Created DNS CNAME: ha.z10.zt.tiny-systems.eu → z10.zt.tiny-systems.eu
+- Updated Caddy site block to accept both LAN and ZT domains
+- Added explicit `tls { dns route53 }` block for cert issuance on ZT domain
+- Let's Encrypt cert obtained via DNS-01 challenge
+**Files changed:** local/dns/records/ha.z10.zt.tiny-systems.eu (created), /etc/caddy/sites/home-assistant.caddy (updated), local/docs/apps/home-assistant.md, local/docs/apps/binary/caddy.md
+**Verification:** HTTPS 200 on both ZT IP (192.168.195.108) and LAN IP (192.168.2.32)
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-05 09:30 — orchestrator
 
 **Action:** Onboarded Home Assistant behind Caddy reverse proxy
