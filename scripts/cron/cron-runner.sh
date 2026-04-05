@@ -47,7 +47,7 @@ LOG_FILE="$LOG_DIR/cron-$(date +%Y%m%d-%H%M%S).log"
 echo "[$TIMESTAMP] Running scheduled task: $TASK" | tee "$LOG_FILE"
 
 cd "$REPO_ROOT"
-OUTPUT=$(claude --agent orchestrator -p "$TASK" --output-format text 2>&1) || true
+OUTPUT=$(claude --agent orchestrator --dangerously-skip-permissions -p "$TASK" --output-format text 2>&1) || true
 echo "$OUTPUT" >> "$LOG_FILE"
 
 # Notify via Telegram if configured
