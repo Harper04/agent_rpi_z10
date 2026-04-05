@@ -143,9 +143,17 @@ sudo nsenter -t $CONTAINER_PID -n ip addr show br0
 
 ## Reverse Proxy (Caddy)
 
-UniFi OS serves HTTPS on port 11443 with a self-signed certificate. Caddy must use
-`tls_insecure_skip_verify` to proxy to it. No post-proxy app config is needed —
-UniFi accepts `X-Forwarded-For` and custom Host headers without restriction.
+UniFi OS serves HTTPS on port 11443 with a self-signed certificate. Three proxy
+issues must be addressed:
+
+1. **TLS upstream**: Caddy must use `tls_insecure_skip_verify` (self-signed cert).
+2. **WebSocket Origin validation**: UniFi rejects WebSocket upgrades with 500 if the
+   `Origin` header doesn't match `127.0.0.1`. Rewrite it with `header_up Origin`.
+3. **HTTP/1.1 required**: WebSocket upgrade (101 Switching Protocols) needs HTTP/1.1.
+   Force it on both sides: `alpn http/1.1` (client↔Caddy) and `versions 1.1`
+   (Caddy↔backend).
+4. **Location redirects**: UniFi's nginx sends redirects with the backend IP. Rewrite
+   with `header_down Location`.
 
 ### Caddy site block
 
@@ -158,24 +166,24 @@ UniFi accepts `X-Forwarded-For` and custom Host headers without restriction.
 unifi.{{ ZONE }}, unifi.{{ ZT_ZONE }} {
     tls {
         dns route53
+        alpn http/1.1
     }
-    reverse_proxy https://{{ HOST_IP }}:11443 {
+    reverse_proxy https://127.0.0.1:11443 {
         transport http {
             tls_insecure_skip_verify
+            versions 1.1
         }
+        header_up Origin https://127.0.0.1:11443
+        header_down Location "https://{{ HOST_IP }}" "https://{http.request.host}"
+        header_down Location "https://127.0.0.1:11443" "https://{http.request.host}"
     }
 }
-```
-
-Use the `/caddy-onboard-app` skill:
-```
-/caddy-onboard-app unifi --port 11443 --https-upstream --zt --no-auth
 ```
 
 ### Post-proxy config
 
 None needed. UniFi OS does not validate forwarded headers or require trusted proxy
-configuration. This is simpler than most apps.
+configuration beyond the Origin rewrite above.
 
 ## Known Issues
 

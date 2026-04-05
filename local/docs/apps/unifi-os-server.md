@@ -208,7 +208,10 @@ Proxied through Caddy at `https://unifi.z10.local.tiny-systems.eu` and
 - **DNS (LAN):** `unifi.z10.local.tiny-systems.eu` → CNAME → `z10.local.tiny-systems.eu`
 - **DNS (ZT):** `unifi.z10.zt.tiny-systems.eu` → CNAME → `z10.zt.tiny-systems.eu`
 - **Auth:** OFF (UniFi has its own SSO auth)
-- **Upstream:** `https://192.168.2.32:11443` with `tls_insecure_skip_verify` (self-signed cert)
+- **Upstream:** `https://127.0.0.1:11443` with `tls_insecure_skip_verify` (self-signed cert)
+- **HTTP version:** HTTP/1.1 forced on both client (ALPN) and upstream (`versions 1.1`) — required for WebSocket upgrade (101 Switching Protocols)
+- **Origin rewrite:** `header_up Origin https://127.0.0.1:11443` — UniFi rejects WebSocket connections whose Origin doesn't match `127.0.0.1`, returning 500
+- **Location rewrite:** Rewrites backend IP in redirect headers to the proxy hostname
 - **Post-proxy config:** None needed — UniFi accepts X-Forwarded-For from any source
 
 ## Known Issues & Gotchas
@@ -233,3 +236,4 @@ Proxied through Caddy at `https://unifi.z10.local.tiny-systems.eu` and
 | 2026-04-04 | Updated UOS UUID, IP, documented known issues | orchestrator |
 | 2026-04-05 | Added Caddy reverse proxy + DNS (LAN + ZT) + dashboard          | orchestrator |
 | 2026-04-04 | Fixed WebRTC remote access — dummy br0 in container namespace + systemd service | orchestrator |
+| 2026-04-05 | Fixed Caddy reverse proxy — Origin rewrite for WebSocket, HTTP/1.1 forced, upstream changed to 127.0.0.1 | orchestrator |

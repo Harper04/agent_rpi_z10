@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-04-05 13:44 — orchestrator
+
+**Action:** Fixed UniFi Caddy reverse proxy (WebSocket + redirects)
+
+- **Root cause:** UniFi rejects WebSocket upgrades with 500 when Origin header doesn't match `127.0.0.1`; HTTP/2 doesn't support traditional WebSocket upgrade (101)
+- **Fix:** Added `header_up Origin https://127.0.0.1:11443`, forced HTTP/1.1 on both sides via `alpn http/1.1` and `versions 1.1`, changed upstream to `127.0.0.1`, added Location header rewrites
+- **Config:** `/etc/caddy/sites/unifi.caddy`
+- **Docs:** Updated `local/docs/apps/unifi-os-server.md` and `docs/recipes/unifi-os-server.md`
+
+## 2026-04-05 12:04 — orchestrator
+
+**Action:** Added ZeroTier API credentials to dashboard
+
+- Added `ZEROTIER_API_KEY` and `ZEROTIER_NETWORK_ID` to `local/.env`
+- Restarted dashboard — ZeroTier members now visible (7 members)
+
+## 2026-04-05 12:00 — orchestrator
+
+**Action:** Restored local/ files deleted by upstream merge
+
+- Commit `65c54ce` (auto-merge of upstream/main) propagated deletion of local/ from template repo
+- Restored all 39 files from pre-merge state (commit `3148dc0`)
+
 ## 2026-04-05 11:08 — orchestrator
 
 **Action:** Onboarded UniFi OS behind Caddy reverse proxy
