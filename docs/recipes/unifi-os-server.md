@@ -4,8 +4,8 @@ method: binary
 version: "latest"
 ports: [11443, 8080, 8443, 3478, 10003]
 dependencies: [podman, slirp4netns]
-reverse-proxy: false
-domain: ""
+reverse-proxy: true
+domain: "unifi.{{ ZONE }}"
 data-paths: ["/var/lib/uosserver", "/home/uosserver/.local/share/containers/storage/volumes"]
 backup: true
 ---
@@ -140,6 +140,42 @@ CONMON_PID=$(pgrep -u uosserver conmon)
 CONTAINER_PID=$(pgrep -P $CONMON_PID)
 sudo nsenter -t $CONTAINER_PID -n ip addr show br0
 ```
+
+## Reverse Proxy (Caddy)
+
+UniFi OS serves HTTPS on port 11443 with a self-signed certificate. Caddy must use
+`tls_insecure_skip_verify` to proxy to it. No post-proxy app config is needed —
+UniFi accepts `X-Forwarded-For` and custom Host headers without restriction.
+
+### Caddy site block
+
+```bash
+# /etc/caddy/sites/unifi.caddy
+# @name UniFi OS
+# @icon las la-wifi
+# @description UniFi network controller
+# @dashboard true
+unifi.{{ ZONE }}, unifi.{{ ZT_ZONE }} {
+    tls {
+        dns route53
+    }
+    reverse_proxy https://{{ HOST_IP }}:11443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
+```
+
+Use the `/caddy-onboard-app` skill:
+```
+/caddy-onboard-app unifi --port 11443 --https-upstream --zt --no-auth
+```
+
+### Post-proxy config
+
+None needed. UniFi OS does not validate forwarded headers or require trusted proxy
+configuration. This is simpler than most apps.
 
 ## Known Issues
 
