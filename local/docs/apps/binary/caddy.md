@@ -41,6 +41,7 @@ Installed per `docs/recipes/caddy.md` (LAN flavor).
 |-------------------------------------|-------------------|-------------------|---------|
 | `z10.local.tiny-systems.eu`         | `default.caddy`   | Static landing    | OFF     |
 | `auth.z10.local.tiny-systems.eu`    | `_auth.caddy`     | Auth portal       | Portal  |
+| `ha.z10.local.tiny-systems.eu`      | `home-assistant.caddy` | `192.168.2.174:8123` | OFF |
 
 ### Key paths
 

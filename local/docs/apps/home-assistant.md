@@ -69,6 +69,7 @@ sudo virsh autostart haos
 | MAC address    | `52:54:00:9f:79:0f`                            |
 | VM IP          | `192.168.2.174` (DHCP from router)             |
 | Web UI         | `http://192.168.2.174:8123`                    |
+| Web UI (Caddy) | `https://ha.z10.local.tiny-systems.eu`         |
 | vCPUs          | 2                                              |
 | RAM (max)      | 4096 MB                                        |
 | RAM allocation | on-demand (lazy — only touched pages used)     |
@@ -200,6 +201,29 @@ Settings → System → Updates
 
 ⚠️ After HAOS OTA updates, you may need: `sudo virsh reboot haos`
 
+## Reverse Proxy (Caddy)
+
+Proxied through Caddy at `https://ha.z10.local.tiny-systems.eu`.
+
+- **Site block:** `/etc/caddy/sites/home-assistant.caddy`
+- **DNS:** `ha.z10.local.tiny-systems.eu` → CNAME → `z10.local.tiny-systems.eu`
+- **Auth:** OFF (HA has its own auth)
+- **trusted_proxies:** configured in HA `configuration.yaml`:
+  ```yaml
+  http:
+    use_x_forwarded_for: true
+    trusted_proxies:
+      - 192.168.2.173
+      - 192.168.2.32
+  ```
+- **Backup:** `/config/configuration.yaml.bak.2026-04-05` (pre-proxy)
+
+### Add-ons installed for proxy setup
+
+| Addon     | Slug       | Purpose                     | Port exposed |
+|-----------|------------|-----------------------------|--------------|
+| SSH & Terminal | `core_ssh` | Config file editing via SSH | disabled (was 22222 during setup) |
+
 ## Known Issues & Gotchas
 
 - **On-demand memory**: `--memorybacking allocation.mode=ondemand` means `dominfo` shows full 4 GB as "Used memory" but actual host consumption is only what the guest touches (~700 MB idle).
@@ -214,4 +238,6 @@ Settings → System → Updates
 
 | Date       | Change                                              | Agent        |
 |------------|-----------------------------------------------------|--------------|
+| 2026-04-05 | Added Caddy reverse proxy + DNS + trusted_proxies   | orchestrator |
+| 2026-04-05 | Installed core_ssh addon for config management       | orchestrator |
 | 2026-04-02 | Initial install HAOS 17.1 in KVM with br0 bridge   | orchestrator |

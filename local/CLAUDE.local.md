@@ -42,9 +42,11 @@ TODO
 ```
 
 ### Custom Ports
-| Port   | Service     | Reason for non-default |
-|--------|-------------|------------------------|
-| TODO   | TODO        | TODO                   |
+| Port   | Service              | Reason for non-default              |
+|--------|----------------------|-------------------------------------|
+| 11443  | UniFi OS Web UI      | Podman container (HTTPS, self-signed)|
+| 8123   | Home Assistant       | KVM guest at 192.168.2.174          |
+| 7080   | AdGuard Home         | Default AdGuard HTTP port           |
 
 ### Local Agents
 
@@ -62,6 +64,7 @@ None yet.
 | Telegram Chat ID    | `local/.env`      | Operator chat          |
 | AWS Access Key      | `local/.env`      | Route53 DNS management |
 | AWS Secret Key      | `local/.env`      | Route53 DNS management |
+| HA API Token        | `local/.env`      | Home Assistant REST API |
 
 ## Notes
 

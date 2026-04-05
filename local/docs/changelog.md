@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-05 09:30 — orchestrator
+
+**Action:** Onboarded Home Assistant behind Caddy reverse proxy
+**Reason:** HA had no DNS/Caddy integration, was not visible on system dashboard
+**Details:**
+- Created DNS CNAME: ha.z10.local.tiny-systems.eu → z10.local.tiny-systems.eu
+- Created Caddy site block: /etc/caddy/sites/home-assistant.caddy (no auth, HA has own)
+- Configured HA trusted_proxies via SSH addon (core_ssh) for X-Forwarded-For support
+- Installed core_ssh addon in HA for config file management (port disabled after use)
+- Generated SSH key pair on host for HA access (~/.ssh/id_ed25519)
+- Saved HA API token to local/.env
+**Files changed:** local/dns/records/ha.z10.local.tiny-systems.eu (created), /etc/caddy/sites/home-assistant.caddy (created), local/docs/apps/home-assistant.md, local/docs/apps/binary/caddy.md, local/.env
+**Verification:** https://ha.z10.local.tiny-systems.eu/ returns HTTP 200
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-05 06:00 — orchestrator
 
 **Action:** Switched DNS from wildcard to explicit per-app records
