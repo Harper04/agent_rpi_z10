@@ -6,6 +6,12 @@
 #   origin   = this machine's repo (includes local/)
 # ============================================================
 
+# --- local/ directory ---
+# local/ is tracked in machine repos (origin) but MUST NOT exist in the
+# upstream template repo. Seeds live in templates/local/ instead.
+# If you see local/ files in upstream, run the cleanup procedure.
+# The contribute script automatically excludes local/ from upstream pushes.
+
 # --- Secrets (NEVER committed anywhere) ---
 local/.env
 *.key
