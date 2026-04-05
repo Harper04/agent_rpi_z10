@@ -3,6 +3,8 @@
 > **Status:** ✅ Running | ⚠️ Degraded | 🔴 Down
 > **Last verified:** YYYY-MM-DD
 > **Managed by agent:** `<agent-name>`
+> **Installation method:** `apt` | `docker` | `k3s` | `snap` | `binary` | `source`
+> **Recipe:** `docs/recipes/<app>.md` | manual
 
 ## Overview
 
@@ -79,6 +81,25 @@ journalctl -u <app> --since "1 hour ago"
 ```bash
 # Steps to update this application
 ```
+
+## Reverse Proxy (Caddy)
+
+> Delete this section if the app is not behind Caddy.
+
+| Key             | Value                                   |
+|-----------------|-----------------------------------------|
+| Site block      | `/etc/caddy/sites/<app>.caddy`          |
+| LAN domain      | `https://<app>.<zone>/`                 |
+| ZT domain       | `https://<app>.<zt-zone>/` (if enabled) |
+| Auth            | OFF / ON (with default_policy)          |
+| Upstream        | `http://localhost:<port>` or `http://<host>:<port>` |
+
+### Post-proxy config
+
+Document any app-side config needed for the proxy to work:
+- `trusted_proxies` — list of Caddy host IPs the app trusts for `X-Forwarded-For`
+- `external_url` / `internal_url` — if the app generates callback URLs
+- `tls_insecure_skip_verify` — if app serves HTTPS with self-signed cert
 
 ## Known Issues & Gotchas
 
