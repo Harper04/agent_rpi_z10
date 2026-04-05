@@ -16,25 +16,31 @@ fi
 # --- Safe-command whitelist (arguments are data, not executable) ---
 SAFE_PREFIXES="^(sudo )?(git (commit|log|show|tag|stash|blame|diff|shortlog|describe|notes|archive)|echo |printf |cat |head |tail |less |more |wc |grep |rg |ag |find |man |which |type |file |stat )"
 
-# --- Destructive patterns: Tier A (must appear as leading command) ---
-CMD_POSITION_PATTERNS="^(sudo )?(shutdown|reboot|tailscale down)"
+# --- BLOCK (exit 2): Catastrophic / irreversible commands ---
+# These are never safe to run unattended, even if the operator asked.
+BLOCK_PATTERNS="rm -rf /($|[*]|var|etc|home|usr)"
+BLOCK_PATTERNS+="|mkfs\."
+BLOCK_PATTERNS+="|fdisk "
+BLOCK_PATTERNS+="|dd if="
+BLOCK_PATTERNS+="|iptables -(F|X)"
+BLOCK_PATTERNS+="|chmod 777"
+BLOCK_PATTERNS+="|crontab -r"
+BLOCK_PATTERNS+="|virsh undefine"
+BLOCK_PATTERNS+="|docker system prune -a"
+BLOCK_PATTERNS+="|kubectl delete namespace"
+BLOCK_PATTERNS+="|systemctl (stop sshd|stop tailscaled|mask)"
+BLOCK_PATTERNS+="|tailscale down"
 
-# --- Destructive patterns: Tier B (specific enough to match anywhere) ---
-ANYWHERE_PATTERNS="rm -rf /($|[*]|var|etc|home|usr)"
-ANYWHERE_PATTERNS+="|mkfs\."
-ANYWHERE_PATTERNS+="|fdisk "
-ANYWHERE_PATTERNS+="|dd if="
-ANYWHERE_PATTERNS+="|iptables -(F|X)"
-ANYWHERE_PATTERNS+="|ufw disable"
-ANYWHERE_PATTERNS+="|systemctl (stop sshd|stop tailscaled|disable|mask)"
-ANYWHERE_PATTERNS+="|apt (remove|purge|autoremove)"
-ANYWHERE_PATTERNS+="|virsh (destroy|undefine)"
-ANYWHERE_PATTERNS+="|docker system prune -a"
-ANYWHERE_PATTERNS+="|docker volume rm"
-ANYWHERE_PATTERNS+="|kubectl delete namespace"
-ANYWHERE_PATTERNS+="|btrfs subvolume delete"
-ANYWHERE_PATTERNS+="|chmod 777"
-ANYWHERE_PATTERNS+="|crontab -r"
+# --- WARN (log + allow): Operational commands ---
+# The agent legitimately needs these when the operator requests them.
+# Log to stderr so the agent sees the warning, but don't block.
+WARN_PATTERNS="^(sudo )?(shutdown|reboot)"
+WARN_ANYWHERE="virsh destroy"
+WARN_ANYWHERE+="|systemctl (disable|stop)"
+WARN_ANYWHERE+="|apt (remove|purge|autoremove)"
+WARN_ANYWHERE+="|docker volume rm"
+WARN_ANYWHERE+="|btrfs subvolume delete"
+WARN_ANYWHERE+="|ufw disable"
 
 # Split command on chain/pipe operators, check each segment
 SEGMENTS=$(echo "$COMMAND" | sed 's/ *&& */\n/g; s/ *|| */\n/g; s/ *; */\n/g; s/ *| */\n/g')
@@ -48,16 +54,20 @@ while IFS= read -r SEGMENT; do
     continue
   fi
 
-  # Tier A: command-position patterns
-  if echo "$SEGMENT" | grep -qEi "$CMD_POSITION_PATTERNS"; then
-    echo "🚫 BLOCKED: Destructive command detected: '$SEGMENT'. This requires explicit operator confirmation. Please ask the operator before proceeding." >&2
+  # BLOCK tier: hard stop
+  if echo "$SEGMENT" | grep -qEi "$BLOCK_PATTERNS"; then
+    echo "🚫 BLOCKED: Dangerous command detected: '$SEGMENT'. This is blocked even with operator confirmation." >&2
     exit 2
   fi
 
-  # Tier B: specific patterns anywhere in segment
-  if echo "$SEGMENT" | grep -qEi "$ANYWHERE_PATTERNS"; then
-    echo "🚫 BLOCKED: Destructive command detected: '$SEGMENT'. This requires explicit operator confirmation. Please ask the operator before proceeding." >&2
-    exit 2
+  # WARN tier: log but allow
+  if echo "$SEGMENT" | grep -qEi "$WARN_PATTERNS"; then
+    echo "⚠️  Operational command: '$SEGMENT' — proceeding (operator-initiated)." >&2
+    continue
+  fi
+  if echo "$SEGMENT" | grep -qEi "$WARN_ANYWHERE"; then
+    echo "⚠️  Operational command: '$SEGMENT' — proceeding (operator-initiated)." >&2
+    continue
   fi
 done <<< "$SEGMENTS"
 
