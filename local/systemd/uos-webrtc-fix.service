@@ -1,0 +1,12 @@
+[Unit]
+Description=Create dummy br0 in UOS container for WebRTC remote access
+After=uosserver.service
+Requires=uosserver.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/tomjaster/sysadmin-agent/scripts/hooks/uos-webrtc-fix.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
