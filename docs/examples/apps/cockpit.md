@@ -1,0 +1,128 @@
+# Cockpit
+
+> **Example doc** — sanitized from a real machine. Copy to `local/docs/apps/cockpit.md` and fill in your values.
+
+> **Status:** Running
+> **Last verified:** YYYY-MM-DD
+> **Managed by agent:** `orchestrator`
+> **Installation method:** `apt`
+> **Recipe:** manual
+
+## Overview
+
+Cockpit is a web-based system management interface providing real-time monitoring
+and administration of the server. Running in local-session mode (no built-in auth)
+behind Caddy's authentication portal for SSO.
+
+## Installation
+
+```bash
+sudo apt-get install -y cockpit cockpit-storaged cockpit-networkmanager cockpit-packagekit
+```
+
+## Version
+
+| Component       | Version   | Source |
+|-----------------|-----------|--------|
+| cockpit         | <version> | apt    |
+| cockpit-ws      | <version> | apt    |
+| cockpit-bridge  | <version> | apt    |
+| cockpit-podman  | <version> | apt    |
+
+## Configuration
+
+### Config files
+
+| File                                      | Purpose                              |
+|-------------------------------------------|--------------------------------------|
+| `/etc/cockpit/cockpit.conf`               | Main config (proxy headers, origins) |
+| `/etc/systemd/system/cockpit-local.service` | Custom systemd unit (local-session)  |
+| `/etc/caddy/sites/cockpit.caddy`          | Caddy reverse proxy site config      |
+
+### Key settings
+
+- **Local-session mode:** `cockpit-ws --local-session=cockpit-bridge` — skips Cockpit's
+  own authentication entirely. Auth is handled by Caddy's security portal.
+- **No TLS:** `--no-tls` — Caddy handles TLS termination.
+- **Runs as:** `root` — provides full admin access by default (no escalation needed).
+  Safe because port 9090 is localhost-only behind Caddy auth.
+- **Default cockpit.socket:** stopped, should be masked (pending operator confirmation).
+
+### cockpit.conf
+
+```ini
+[WebService]
+Origins = https://cockpit.<hostname>.<domain>
+ProtocolHeader = X-Forwarded-Proto
+ForwardedForHeader = X-Forwarded-For
+LoginTo = false
+AllowUnencrypted = true
+
+[Session]
+Banner =
+```
+
+## Network
+
+| Port | Protocol | Purpose       | Exposed to     |
+|------|----------|---------------|----------------|
+| 9090 | TCP     | Cockpit HTTP  | localhost only |
+
+## Data & Storage
+
+| Path                      | Purpose              | Backed up? |
+|---------------------------|----------------------|------------|
+| `/etc/cockpit/`           | Configuration        | Yes        |
+
+## Dependencies
+
+- Depends on: Caddy (reverse proxy + auth), systemd
+- Depended on by: none
+
+## Health Check
+
+```bash
+systemctl is-active cockpit-local.service
+curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9090/
+# Should return: active / 200
+```
+
+## Common Operations
+
+### Restart
+```bash
+sudo systemctl restart cockpit-local.service
+```
+
+### View logs
+```bash
+journalctl -u cockpit-local --since "1 hour ago"
+```
+
+### Update
+```bash
+sudo apt-get update && sudo apt-get install cockpit cockpit-storaged cockpit-networkmanager cockpit-packagekit
+sudo systemctl restart cockpit-local.service
+```
+
+## Access
+
+- URL: https://cockpit.<hostname>.<domain>/
+- Auth: Caddy portal (no separate Cockpit login)
+- Portal link: appears in auth portal navigation
+
+## Known Issues & Gotchas
+
+- Default `cockpit.socket` is masked (`/dev/null` symlink) to prevent accidental activation.
+- Cockpit requires the `Origin` header on WebSocket handshakes — Caddy must inject it via `header_up Origin`.
+- Empty `Banner =` in cockpit.conf causes repeated log errors — omit the line entirely.
+- Must run as root for Podman to see root containers (Quadlet) and for full admin access.
+- Needs `XDG_RUNTIME_DIR` set in the systemd unit for D-Bus access.
+- Cockpit uses WebSockets heavily — Caddy handles this natively.
+- If cockpit-ws crashes, systemd will restart it (RestartSec=5).
+
+## Changelog (app-specific)
+
+| Date       | Change                                          | Agent        |
+|------------|-------------------------------------------------|--------------|
+| YYYY-MM-DD | Initial installation with local-session + Caddy | orchestrator |
