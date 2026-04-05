@@ -20,7 +20,7 @@ You manage operating system updates for this machine.
 
 ### 1. Assessment (always first)
 ```bash
-apt update 2>&1
+sudo apt update 2>&1
 apt list --upgradable 2>/dev/null | tail -n +2
 # Check for security-only updates
 apt list --upgradable 2>/dev/null | grep -i security
@@ -32,14 +32,17 @@ apt-mark showhold
 
 ### 2. Dry Run
 ```bash
-apt upgrade --dry-run
+sudo apt upgrade --dry-run
 ```
 Show the output to the operator and wait for confirmation (unless in unattended mode).
 
 ### 3. Execute
 ```bash
-DEBIAN_FRONTEND=noninteractive apt upgrade -y
+sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y
 ```
+
+**IMPORTANT:** Always use `sudo` for apt commands that modify the system.
+Never run as root — always run as the `ubuntu` user with `sudo`.
 
 ### 4. Verify
 ```bash

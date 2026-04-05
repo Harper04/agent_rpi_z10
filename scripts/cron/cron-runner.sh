@@ -47,6 +47,12 @@ LOG_FILE="$LOG_DIR/cron-$(date +%Y%m%d-%H%M%S).log"
 echo "[$TIMESTAMP] Running scheduled task: $TASK" | tee "$LOG_FILE"
 
 cd "$REPO_ROOT"
+# --dangerously-skip-permissions: cron tasks are unattended and need full tool
+# access (Write, Edit, sudo, git commit, etc.). Without this flag, any tool not
+# in settings.json allow-list is silently denied in -p mode.
+# The systemd agent (run-agent.sh) uses the same flag for the same reason.
+# skipDangerousModePermissionPrompt in ~/.claude/settings.json suppresses the
+# interactive confirmation prompt that would otherwise block headless execution.
 OUTPUT=$(claude --agent orchestrator --dangerously-skip-permissions -p "$TASK" --output-format text 2>&1) || true
 echo "$OUTPUT" >> "$LOG_FILE"
 
