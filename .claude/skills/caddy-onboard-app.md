@@ -1,7 +1,7 @@
 ---
 name: caddy-onboard-app
 description: Add a new application behind Caddy reverse proxy with DNS, TLS, and auth configuration.
-argument-hint: "<app-name> --port <port> [--domain <fqdn>] [--no-auth] [--api-path /api]"
+argument-hint: "<app-name> --port <port> [--domain <fqdn>] [--host <ip>] [--https-upstream] [--zt] [--no-auth] [--api-path /api]"
 user-invocable: true
 ---
 
@@ -35,13 +35,20 @@ esac
 ### 1.2 Interview (skip questions answered by flags)
 
 1. **App name**: Used for DNS record, site block filename, and documentation.
-2. **Upstream port**: The local port the app listens on.
-   - Verify it's actually listening: `ss -tlnp | grep :<port>`
-3. **Domain**: Default `<app>.<zone>`. Override with `--domain` for custom FQDNs.
-4. **Auth**: Default ON for internet, OFF for LAN. Override with `--no-auth` or `--auth`.
-5. **API path**: If specified, requests matching this path bypass auth. Default: none.
+2. **Upstream port**: The port the app listens on.
+   - Verify it's actually listening: `ss -tlnp | grep :<port>` (or `curl` for remote hosts)
+3. **Upstream host**: Default `localhost`. Override with `--host <ip>` for apps on a
+   different IP (e.g., KVM guest, container with its own IP). Verify reachability:
+   `curl -s -o /dev/null -w "%{http_code}" http://<host>:<port>/`
+4. **Upstream scheme**: Default `http`. Use `--https-upstream` when the app serves HTTPS
+   with a self-signed cert (e.g., UniFi OS). Caddy will use `tls_insecure_skip_verify`.
+5. **Domain**: Default `<app>.<zone>`. Override with `--domain` for custom FQDNs.
+6. **ZeroTier domain**: Use `--zt` to also create a `<app>.<hostname>.zt.tiny-systems.eu`
+   domain in the same site block, enabling remote access via ZeroTier.
+7. **Auth**: Default ON for internet, OFF for LAN. Override with `--no-auth` or `--auth`.
+8. **API path**: If specified, requests matching this path bypass auth. Default: none.
    Use `--api-path /api` to exempt `/api/*` routes.
-6. **Additional routes**: Any custom route rules (e.g., websocket upgrade, specific headers).
+9. **Additional routes**: Any custom route rules (e.g., websocket upgrade, specific headers).
 
 ### 1.3 Pre-flight checks
 
@@ -61,7 +68,7 @@ ss -tlnp | grep ":${PORT}" || echo "WARNING: Nothing listening on port ${PORT}"
 grep -r "${DOMAIN}" /etc/caddy/sites/ 2>/dev/null && echo "WARNING: Domain already in use"
 ```
 
-## Phase 2 — DNS Record
+## Phase 2 — DNS Records
 
 Always create an explicit DNS record for the new app. Do NOT rely on wildcard DNS
 records — wildcards may exist for TLS cert issuance but every virtual hostname must
@@ -74,6 +81,10 @@ an A/AAAA record with the public IP.
 # LAN flavor — CNAME to base host record
 BASE_FQDN="${HOSTNAME}.local.tiny-systems.eu"  # or .zt. variant
 echo "CNAME ${BASE_FQDN}" > "local/dns/records/${DOMAIN}"
+
+# If --zt flag: also create ZeroTier domain
+ZT_DOMAIN="${APP_NAME}.${HOSTNAME}.zt.tiny-systems.eu"
+echo "CNAME ${HOSTNAME}.zt.tiny-systems.eu" > "local/dns/records/${ZT_DOMAIN}"
 
 # Internet flavor — A/AAAA with public IP
 # echo "A     $(curl -s4 ifconfig.me)" > "local/dns/records/${DOMAIN}"
@@ -128,13 +139,56 @@ CADDY
 
 ### LAN flavor — no auth by default
 
+The `UPSTREAM` variable controls the proxy target:
+- Default: `localhost:${PORT}`
+- With `--host <ip>`: `<ip>:${PORT}` (e.g., KVM guest, container on bridge network)
+- With `--https-upstream`: adds `https://` prefix and `tls_insecure_skip_verify` transport
+
+The `DOMAINS` variable controls the site block address:
+- Default: `${DOMAIN}`
+- With `--zt`: `${DOMAIN}, ${ZT_DOMAIN}` (comma-separated, both served from same block)
+
+```bash
+# Build upstream URL
+UPSTREAM="${HOST:-localhost}:${PORT}"
+SCHEME="http"
+if [ "${HTTPS_UPSTREAM}" = "true" ]; then
+    SCHEME="https"
+fi
+
+# Build domain list
+DOMAINS="${DOMAIN}"
+if [ -n "${ZT_DOMAIN}" ]; then
+    DOMAINS="${DOMAIN}, ${ZT_DOMAIN}"
+fi
+```
+
+**Standard (http, localhost or remote host):**
+
 ```bash
 cat > /etc/caddy/sites/${APP_NAME}.caddy << 'CADDY'
-${DOMAIN} {
+${DOMAINS} {
     tls {
         dns route53
     }
-    reverse_proxy localhost:${PORT}
+    reverse_proxy ${SCHEME}://${UPSTREAM}
+}
+CADDY
+```
+
+**HTTPS upstream with self-signed cert** (e.g., UniFi OS):
+
+```bash
+cat > /etc/caddy/sites/${APP_NAME}.caddy << 'CADDY'
+${DOMAINS} {
+    tls {
+        dns route53
+    }
+    reverse_proxy https://${UPSTREAM} {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
 }
 CADDY
 ```
@@ -143,17 +197,57 @@ If `--auth` was specified (opt-in for LAN):
 
 ```bash
 cat > /etc/caddy/sites/${APP_NAME}.caddy << 'CADDY'
-${DOMAIN} {
+${DOMAINS} {
     tls {
         dns route53
     }
     route {
         authorize with default_policy
-        reverse_proxy localhost:${PORT}
+        reverse_proxy ${SCHEME}://${UPSTREAM}
     }
 }
 CADDY
 ```
+
+## Phase 3.5 — Post-Proxy App Configuration
+
+Some apps need configuration changes to work correctly behind a reverse proxy.
+Check each item and apply if relevant:
+
+### Trusted proxies / X-Forwarded-For
+
+Many apps reject `X-Forwarded-For` headers from untrusted IPs. If the app has
+a trusted_proxies or similar setting, add the Caddy host IP(s).
+
+Common apps that need this:
+- **Home Assistant**: `configuration.yaml` → `http.trusted_proxies` list
+- **Gitea/Forgejo**: `app.ini` → `[server] PROXY_ALLOWED` 
+- **Grafana**: `grafana.ini` → `[server] enforce_domain`
+
+```bash
+# Identify which IPs Caddy uses to reach the app
+# For localhost apps: 127.0.0.1
+# For bridge/VM apps: the host's bridge IP
+# For container apps: the host's primary IP or docker bridge IP
+```
+
+### External URL configuration
+
+Apps that generate callback URLs (OAuth, mobile app pairing, webhooks) need
+to know their public URL:
+
+```bash
+# Example for Home Assistant configuration.yaml:
+# homeassistant:
+#   external_url: "https://${DOMAIN}"
+#   internal_url: "http://${HOST}:${PORT}"
+```
+
+### HTTPS-to-HTTPS conflicts
+
+If the app enforces its own HTTPS redirect (e.g., UniFi OS), Caddy already
+terminates TLS. The app's self-signed cert is handled by `tls_insecure_skip_verify`.
+No additional config needed — but document this in the app doc.
 
 ## Phase 4 — Validate & Reload
 

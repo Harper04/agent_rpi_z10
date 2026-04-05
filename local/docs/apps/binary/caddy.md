@@ -1,91 +1,111 @@
 # Caddy — Reverse Proxy + Auth Portal
 
-> Last verified: 2026-04-03
-> Responsible agent: caddy
-> Source recipe: docs/recipes/caddy.md
+> **Status:** Running
+> **Last verified:** 2026-04-04
+> **Managed by agent:** `caddy`
+> **Installation method:** Binary (Caddy Download API)
+> **Recipe:** `docs/recipes/caddy.md`
 
-## Status: Running
+## Overview
 
-## Installation Details
+Caddy v2.11.2 with caddy-security + caddy-dns/route53 plugins. LAN flavor
+(auth OFF by default). Provides HTTPS reverse proxy with SSO auth portal
+for all web apps on this machine.
 
-| Key               | Value                                    |
-|-------------------|------------------------------------------|
-| Version           | v2.11.2                                  |
-| Install method    | Binary (Caddy Download API)              |
-| Plugins           | caddy-security, caddy-dns/route53        |
-| Binary path       | `/usr/bin/caddy`                         |
-| Config            | `/etc/caddy/Caddyfile`                   |
-| Site blocks       | `/etc/caddy/sites/*.caddy`               |
-| Static files      | `/etc/caddy/static/`                     |
-| Environment       | `/etc/caddy/env`                         |
-| User database     | `/var/lib/caddy/users.json`              |
-| Systemd service   | `caddy.service`                          |
-| TLS certs         | `/var/lib/caddy/.local/share/caddy/`     |
-| Flavor            | Internet (auth ON by default)            |
+## Installation
 
-## Domains & Sites
+Installed per `docs/recipes/caddy.md` (LAN flavor).
 
-| Domain                              | Site block          | Upstream          | Auth    |
-|-------------------------------------|---------------------|-------------------|---------|
-| `mini-core.tiny-systems.eu`         | `default.caddy`     | Static files      | ON      |
-| `auth.mini-core.tiny-systems.eu`    | `_auth.caddy`       | Auth portal       | Portal  |
-| `adguard.mini-core.tiny-systems.eu` | `adguard.caddy`     | localhost:3000    | ON      |
+## Version
 
-## TLS Certificates
+| Component       | Version   | Source                    |
+|-----------------|-----------|---------------------------|
+| Caddy           | `2.11.2`  | Caddy Download API (arm64)|
+| caddy-security  | bundled   | greenpau/caddy-security   |
+| caddy-dns/route53| bundled  | caddy-dns/route53         |
 
-| Domain                              | Issuer         | Method   | Status  |
-|-------------------------------------|----------------|----------|---------|
-| `mini-core.tiny-systems.eu`         | Let's Encrypt  | DNS-01   | Valid   |
-| `auth.mini-core.tiny-systems.eu`    | Let's Encrypt  | DNS-01   | Valid   |
-| `adguard.mini-core.tiny-systems.eu` | Let's Encrypt  | DNS-01   | Valid   |
+## Configuration
 
-## Auth Portal
+### Identity
 
-- **Login URL:** https://auth.mini-core.tiny-systems.eu/ (redirects to `/auth/login`)
-- **Base path:** `/auth/` (required — caddy-security profile SPA expects this)
-- **Portal dashboard:** `/auth/portal` (app links)
-- **Profile / MFA:** `/auth/profile/` (passkeys, MFA, password, API keys)
-- **SSO cookie domain:** `mini-core.tiny-systems.eu` (shared across all subdomains)
-- **Admin user:** `tomjaster` (tom@altow.de, role: authp/admin)
-- **Auth policies:** `default_policy` (require login), `api_policy` (allow all)
-- **Admin API:** enabled (required for profile management)
+| Key             | Value                                     |
+|-----------------|-------------------------------------------|
+| Flavor          | LAN (auth OFF by default)                 |
+| Cookie domain   | `z10.local.tiny-systems.eu`               |
+| Admin user      | `tomjaster`                               |
+| Admin email     | `tom@altow.de`                            |
 
-## DNS Records
+### Domains & Sites
 
-| Record                              | Type  | Value                         |
-|-------------------------------------|-------|-------------------------------|
-| `mini-core.tiny-systems.eu`         | A     | 178.104.28.233                |
-| `mini-core.tiny-systems.eu`         | AAAA  | 2a01:4f8:1c1b:e5ef::1        |
-| `*.mini-core.tiny-systems.eu`       | CNAME | mini-core.tiny-systems.eu     |
+| Domain                              | Site block        | Upstream          | Auth    |
+|-------------------------------------|-------------------|-------------------|---------|
+| `z10.local.tiny-systems.eu`         | `default.caddy`   | Static landing    | OFF     |
+| `auth.z10.local.tiny-systems.eu`    | `_auth.caddy`     | Auth portal       | Portal  |
+| `ha.z10.local.tiny-systems.eu`      | `home-assistant.caddy` | `192.168.2.174:8123` | OFF |
+| `ha.z10.zt.tiny-systems.eu`        | `home-assistant.caddy` | `192.168.2.174:8123` | OFF |
+
+### Key paths
+
+| Path                                | Purpose                    |
+|-------------------------------------|----------------------------|
+| `/usr/bin/caddy`                    | Custom binary              |
+| `/etc/caddy/Caddyfile`             | Main config                |
+| `/etc/caddy/sites/*.caddy`         | Per-app site blocks        |
+| `/etc/caddy/static/`               | Static landing page        |
+| `/etc/caddy/env`                   | Environment (secrets)      |
+| `/var/lib/caddy/users.json`        | Auth user database         |
+| `/var/lib/caddy/.local/share/caddy/` | TLS certs (Let's Encrypt)|
+
+## Network
+
+| Port   | Protocol | Purpose             | Exposed to   |
+|--------|----------|---------------------|--------------|
+| 80     | TCP      | HTTP → HTTPS redir  | LAN          |
+| 443    | TCP      | HTTPS reverse proxy | LAN          |
+
+## Data & Storage
+
+| Path                                   | Purpose          | Backed up? |
+|----------------------------------------|------------------|------------|
+| `/etc/caddy/`                          | Config           | TODO       |
+| `/var/lib/caddy/users.json`            | Auth users       | TODO       |
+| `/var/lib/caddy/.local/share/caddy/`   | TLS certs        | auto-renew |
+
+## Dependencies
+
+- Depends on: network, Route53 DNS (for TLS)
+- Depended on by: (future proxied apps)
 
 ## Health Check
 
 ```bash
 systemctl is-active caddy
 caddy validate --config /etc/caddy/Caddyfile
-curl -sf https://mini-core.tiny-systems.eu/ -o /dev/null -w "%{http_code}"
-curl -sf https://auth.mini-core.tiny-systems.eu/ -o /dev/null -w "%{http_code}"
+curl -sf https://z10.local.tiny-systems.eu/ -o /dev/null && echo "OK"
+curl -sf https://auth.z10.local.tiny-systems.eu/ -o /dev/null -w "%{http_code}"
 ```
 
-## Ports
+## Common Operations
 
-| Port | Protocol | Service     |
-|------|----------|-------------|
-| 80   | TCP      | HTTP→HTTPS redirect |
-| 443  | TCP      | HTTPS (all sites)   |
+### Reload (after config change)
+```bash
+sudo systemctl reload caddy
+```
 
-## Backup Paths
+### Add an app behind Caddy
+1. Write `/etc/caddy/sites/<app>.caddy`
+2. `caddy validate --config /etc/caddy/Caddyfile`
+3. `sudo systemctl reload caddy`
 
-- `/etc/caddy/` — config files
-- `/var/lib/caddy/users.json` — user database with passkeys
-- `/var/lib/caddy/.local/share/caddy/` — TLS certs (auto-renewed, low priority)
+## Known Issues & Gotchas
 
-## Known Issues
+- Auth portal must be served under `/auth*` route (SPA base path requirement).
+- First cert acquisition takes ~2 min (Route53 DNS-01 propagation).
+- `password_recovery_enabled` directive is not supported in this caddy-security version.
+- users.json ownership must be caddy:caddy.
 
-- Custom binary must be re-downloaded on Caddy upgrades
-- `users.json` ownership must be `caddy:caddy`
-- First cert acquisition may timeout on DNS propagation; Caddy auto-retries
-- Auth portal MUST be served under `/auth/*` route — the profile SPA hardcodes `/auth/` as base path; serving from `/` causes doubled paths in sidebar navigation
-- After config changes that affect cookies/tokens, users must clear browser cookies for `mini-core.tiny-systems.eu` or use incognito
-- `enable admin api` is required for the profile management UI to work
-- Login has a "sandbox" step (re-enter password) — this is caddy-security's built-in behavior, not a bug
+## Changelog
+
+| Date       | Change                                          | Agent        |
+|------------|-------------------------------------------------|--------------|
+| 2026-04-04 | Initial install v2.11.2 LAN flavor + auth portal | orchestrator |

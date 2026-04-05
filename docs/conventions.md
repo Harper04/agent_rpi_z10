@@ -58,11 +58,17 @@
 **Convention:** When adding a new app to the system, complete ALL of these:
 1. App running (systemd unit or container)
 2. Caddy site file with `@` annotations (see `caddy-site-metadata`)
+   - For non-localhost upstreams: use `--host <ip>` (e.g., KVM guest, bridged container)
+   - For HTTPS upstreams with self-signed certs: use `tls_insecure_skip_verify` transport
+   - For multi-domain blocks (LAN + ZT): use comma-separated domains
 3. DNS record created (see `dns-via-skill`)
-4. App doc created at `local/docs/apps/<app>.md` following `docs/apps/_template.md`
-5. App listed in `local/CLAUDE.local.md` → Installed Applications table
-6. Port listed in `local/CLAUDE.local.md` → Custom Ports table
-7. Changelog entry appended
+   - If ZeroTier access needed: also create `<app>.<host>.zt.tiny-systems.eu` CNAME
+4. Post-proxy app config: if the app validates forwarded headers, add Caddy host IP
+   to its trusted_proxies / allowed_proxies setting. Test with `curl -H "X-Forwarded-For: ..."`.
+5. App doc created at `local/docs/apps/<app>.md` following `docs/apps/_template.md`
+6. App listed in `local/CLAUDE.local.md` → Installed Applications table
+7. Port listed in `local/CLAUDE.local.md` → Custom Ports table
+8. Changelog entry appended
 
 **Reason:** Ensures every app is discoverable, documented, and visible on the dashboard. Skipping steps leads to "ghost services" that exist but nobody knows about.
 **Added:** 2026-04-04

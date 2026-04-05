@@ -1,4 +1,4 @@
-# Machine: mini-core
+# Machine: ziegeleiweg-pi
 
 > This file is machine-specific and NEVER pushed to the shared template upstream.
 > It is auto-populated by `./setup.sh` and updated by agents during operation.
@@ -7,35 +7,29 @@
 
 | Key              | Value                          |
 |------------------|--------------------------------|
-| Hostname         | `mini-core`                     |
-| OS               | Ubuntu 24.04.3 LTS             |
-| Kernel           | `6.8.0-90-generic`             |
-| Architecture     | `x86_64`                       |
-| Virtualization   | KVM (Hetzner vServer)          |
-| CPU              | Intel Xeon (Skylake) 2x @ 2.1GHz |
-| RAM              | 3.7 GiB                        |
-| Disk             | 38.1 GB (/dev/sda, ext4)       |
-| Primary IP       | `178.104.28.233`               |
-| IPv6             | `2a01:4f8:1c1b:e5ef::1`       |
-| Tailscale IP     | `not configured`               |
-| SSH Port         | `22`                           |
+| Hostname         | `ziegeleiweg-pi`                         |
+| OS               | Ubuntu 25.10        |
+| Architecture     | `aarch64`     |
+| Primary IP       | `192.168.2.32` (DHCP, may change)       |
+| Tailscale IP     | `not configured`                          |
+| Bridge IP (br0)  | `192.168.2.173`                           |
+| SSH Port         | `22`                         |
 | Managed by       | tom@altow.de                   |
-| Purpose          | Minimal core server (Hetzner)  |
-| Git origin       | `https://github.com/harper04/agent_mini_core.git` |
-| Git upstream     | `https://github.com/harper04/agent-sysadmin.git`  |
+| Purpose          | `TODO`                         |
+| Git origin       | `https://github.com/harper04/agent_rpi_z10.git` |
+| Git upstream     | `https://github.com/harper04/agent-sysadmin.git` |
 
 ## Installed Applications
 
 > List of applications managed on THIS machine.
 > Each should have a corresponding doc in `local/docs/apps/`.
 
-| App              | Agent        | Status      |
-|------------------|--------------|-------------|
-| route53-dns      | orchestrator | configured  |
-| adguard-home     | orchestrator | running     |
-| dashboard        | orchestrator | running     |
-| caddy            | caddy        | running     |
-| cockpit          | orchestrator | running     |
+| App              | Agent        | Status  |
+|------------------|--------------|---------|
+| ZeroTier         | orchestrator | ✅ Running |
+| UniFi OS Server  | orchestrator | ✅ Running |
+| Home Assistant   | orchestrator | ✅ Running (KVM) |
+| Route53 DNS      | orchestrator | ✅ Running |
 
 ## Local Overrides
 
@@ -44,18 +38,15 @@
 ### Held Packages
 ```
 # apt-mark showhold output
-(none)
+TODO
 ```
 
 ### Custom Ports
-| Port   | Service          | Reason for non-default |
-|--------|------------------|------------------------|
-| 53     | AdGuard Home DNS | Public DNS service     |
-| 80     | Caddy HTTP       | HTTP→HTTPS redirect    |
-| 443    | Caddy HTTPS      | Reverse proxy + auth   |
-| 7080   | AdGuard Home UI  | Localhost only, behind Caddy |
-| 3100   | Dashboard (Bun)  | Localhost only, behind Caddy |
-| 9090   | Cockpit          | Localhost only, behind Caddy |
+| Port   | Service              | Reason for non-default              |
+|--------|----------------------|-------------------------------------|
+| 11443  | UniFi OS Web UI      | Podman container (HTTPS, self-signed)|
+| 8123   | Home Assistant       | KVM guest at 192.168.2.174          |
+| 7080   | AdGuard Home         | Default AdGuard HTTP port           |
 
 ### Local Agents
 
@@ -71,14 +62,10 @@ None yet.
 |---------------------|-------------------|------------------------|
 | Telegram Bot Token  | `local/.env`      | Agent notifications    |
 | Telegram Chat ID    | `local/.env`      | Operator chat          |
-| GitHub PAT          | `local/.env`      | Git push/pull          |
+| AWS Access Key      | `local/.env`      | Route53 DNS management |
+| AWS Secret Key      | `local/.env`      | Route53 DNS management |
+| HA API Token        | `local/.env`      | Home Assistant REST API |
 
 ## Notes
 
 > Free-form notes specific to this machine.
-
-- Fresh Hetzner vServer, minimal Ubuntu 24.04 cloud image
-- ufw enabled: SSH (22), DNS (53), AGH web UI (3000)
-- AdGuard Home running via Podman Quadlet (--net=host)
-- Unattended upgrades enabled for security patches
-- Swap: disabled (0B)

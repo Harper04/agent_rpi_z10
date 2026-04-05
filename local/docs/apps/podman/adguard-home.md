@@ -1,93 +1,68 @@
 # AdGuard Home
 
-> **Method:** Podman (Quadlet)
-> **Status:** Running (hardened, allowed_clients pending)
-> **Agent:** orchestrator
-> **Last verified:** 2026-04-02
+> **Status:** Running
+> **Last verified:** 2026-04-04
+> **Managed by agent:** `orchestrator`
+> **Installation method:** Podman Quadlet (--net=host)
 > **Recipe:** `docs/recipes/adguard-home.md`
 
 ## Overview
 
-Network-wide DNS ad/tracker blocker running as an internet-facing upstream server.
-Home network AGH instances sync configuration from this instance.
+Network-wide DNS ad/tracker blocker. LAN deployment on ziegeleiweg-pi,
+serving DNS on 192.168.2.32:53. Web UI behind Caddy at
+adguard.z10.local.tiny-systems.eu.
 
-## Container Image
+## Installation
 
-| Field     | Value                                                      |
-|-----------|------------------------------------------------------------|
-| Image     | `docker.io/adguard/adguardhome`                            |
-| Tag       | `latest`                                                   |
-| Digest    | `sha256:7fbf01d73ecb7a32d2d9e6cef8bf88e64bd787889ca80a1e8bce30cd4c084442` |
-| Pulled    | 2026-04-02                                                 |
-| AGH ver   | schema_version 33                                          |
+Installed per `docs/recipes/adguard-home.md`, adapted for LAN:
+- DNS bind: 192.168.2.32 (not 0.0.0.0)
+- Web UI: 192.168.2.32:7080 (proxied via Caddy)
+- No allowed_clients whitelist (LAN only)
 
-## Runtime
+## Version
 
-| Component       | Value                                            |
-|-----------------|--------------------------------------------------|
-| Systemd unit    | `adguardhome.service` (Quadlet-generated)        |
-| Quadlet file    | `/etc/containers/systemd/adguardhome.container`  |
-| Network mode    | `--net=host`                                     |
-| Config dir      | `/opt/adguardhome/conf/`                         |
-| Work dir        | `/opt/adguardhome/work/`                         |
-| Image log       | `/opt/adguardhome/image-history.log`             |
-| Auto-update     | `registry` (via `podman auto-update`)            |
+| Component       | Version  | Source                         |
+|-----------------|----------|--------------------------------|
+| AdGuard Home    | latest   | docker.io/adguard/adguardhome  |
+| Image digest    | sha256:e51007... | See /opt/adguardhome/image-history.log |
 
-## Ports
+## Configuration
 
-| Port | Protocol | Binding         | Purpose              |
-|------|----------|-----------------|----------------------|
-| 53   | tcp+udp  | 178.104.28.233  | DNS                  |
-| 3000 | tcp      | 127.0.0.1       | Web UI (behind Caddy)|
+| Key               | Value                                       |
+|-------------------|---------------------------------------------|
+| DNS bind          | `192.168.2.32:53`                           |
+| Web UI bind       | `192.168.2.32:7080`                         |
+| Admin user        | `tomjaster`                                 |
+| Caddy domain      | `adguard.z10.local.tiny-systems.eu`         |
+| Quadlet unit      | `/etc/containers/systemd/adguardhome.container` |
+| Config            | `/opt/adguardhome/conf/AdGuardHome.yaml`    |
+| Work dir          | `/opt/adguardhome/work/`                    |
 
-## Firewall (ufw)
+## Network
 
-| Rule       | Status  |
-|------------|---------|
-| 22/tcp     | allowed (SSH) |
-| 53/tcp+udp | allowed (DNS) |
-| 80/tcp     | allowed (Caddy HTTP redirect) |
-| 443/tcp    | allowed (Caddy HTTPS)         |
+| Port   | Protocol | Purpose          | Exposed to   |
+|--------|----------|------------------|--------------|
+| 53     | TCP/UDP  | DNS              | LAN (br0)    |
+| 7080   | TCP      | Web UI           | localhost (via Caddy) |
 
-## Security Notes
-
-- **allowed_clients: []** (empty = open resolver!) — MUST add home IPs before production use
-- **ratelimit: 20** qps per client subnet — active
-- **refuse_any: true** — active, prevents DNS amplification
-- **DNSSEC: enabled** — validates upstream responses
-- **safebrowsing: enabled** — blocks known malicious domains
-- **cache: 10 MB, min TTL 300s** — reduces upstream queries
-- **upstream: Quad9 DoH** (`dns10.quad9.net`) — encrypted, malware-blocking
-- Web UI on 127.0.0.1:3000, proxied via Caddy at https://adguard.mini-core.tiny-systems.eu/ (auth required)
-
-## Update Procedure
+## Health Check
 
 ```bash
-# Check for updates
-podman auto-update --dry-run
-
-# Apply update
-podman auto-update
-
-# Or manual with logging — see recipe
+systemctl is-active adguardhome.service
+dig @192.168.2.32 example.com +short +time=2
+curl -sf -o /dev/null -w "%{http_code}" http://192.168.2.32:7080/
 ```
 
-## Backup
+## Common Operations
 
-- `/opt/adguardhome/conf/` — YAML config + filter caches
-- `/opt/adguardhome/image-history.log` — version trail
+### Update image
+```bash
+sudo podman auto-update --dry-run
+sudo podman auto-update
+```
 
-## TODO
+## Changelog
 
-- [x] Complete setup wizard
-- [x] Configure DNS bind to 178.104.28.233
-- [x] Enable rate limiting (20 qps)
-- [x] Enable DNSSEC, safebrowsing, refuse_any
-- [x] Increase cache (10 MB, 300s min TTL)
-- [ ] **Set allowed_clients whitelist (⚠️ currently open resolver!)**
-- [ ] Set up Caddy reverse proxy with caddy-security
-- [ ] Remove ufw rule for port 80 after Caddy
-- [ ] Add more filter lists (OISD, etc.)
-- [ ] Configure downstream sync for home AGH instances
-- [ ] Add to backup schedule
-- [ ] Enable DoH/DoT (optional)
+| Date       | Change                              | Agent        |
+|------------|-------------------------------------|--------------|
+| 2026-04-04 | Initial install via Podman Quadlet  | orchestrator |

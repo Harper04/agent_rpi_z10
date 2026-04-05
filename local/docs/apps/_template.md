@@ -3,8 +3,6 @@
 > **Status:** ✅ Running | ⚠️ Degraded | 🔴 Down
 > **Last verified:** YYYY-MM-DD
 > **Managed by agent:** `<agent-name>`
-> **Installation method:** `apt` | `docker` | `k3s` | `snap` | `binary` | `source`
-> **Recipe:** `docs/recipes/<app>.md` | manual
 
 ## Overview
 
