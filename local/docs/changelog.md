@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-05 11:08 — orchestrator
+
+**Action:** Onboarded UniFi OS behind Caddy reverse proxy
+**Reason:** UniFi had no DNS/Caddy integration, was not visible on dashboard
+**Details:**
+- Created DNS CNAMEs: unifi.z10.local.tiny-systems.eu + unifi.z10.zt.tiny-systems.eu
+- Created Caddy site block with HTTPS upstream + tls_insecure_skip_verify (self-signed cert)
+- No post-proxy config needed — UniFi accepts all forwarded headers without restriction
+- TLS certs obtained via DNS-01 for both domains
+- UniFi now visible on system dashboard
+**Files changed:** local/dns/records/unifi.z10.{local,zt}.tiny-systems.eu (created), /etc/caddy/sites/unifi.caddy (created), local/docs/apps/unifi-os-server.md, local/docs/apps/binary/caddy.md
+**Verification:** HTTPS 200 on LAN and ZT domains, dashboard shows UniFi OS tile
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-05 10:02 — orchestrator
 
 **Action:** Reduced Home Assistant VM RAM from 4 GB to 2.5 GB

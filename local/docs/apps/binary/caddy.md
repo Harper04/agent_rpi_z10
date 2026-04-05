@@ -43,6 +43,8 @@ Installed per `docs/recipes/caddy.md` (LAN flavor).
 | `auth.z10.local.tiny-systems.eu`    | `_auth.caddy`     | Auth portal       | Portal  |
 | `ha.z10.local.tiny-systems.eu`      | `home-assistant.caddy` | `192.168.2.174:8123` | OFF |
 | `ha.z10.zt.tiny-systems.eu`        | `home-assistant.caddy` | `192.168.2.174:8123` | OFF |
+| `unifi.z10.local.tiny-systems.eu`  | `unifi.caddy`    | `https://192.168.2.32:11443` | OFF |
+| `unifi.z10.zt.tiny-systems.eu`    | `unifi.caddy`    | `https://192.168.2.32:11443` | OFF |
 
 ### Key paths
 
