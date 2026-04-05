@@ -1,247 +1,302 @@
-# 🤖 Sysadmin Agent
+# Sysadmin Agent
 
-Claude Code als autonomer Linux-System-Operator — erreichbar via Telegram.
+An autonomous Linux system operator powered by [Claude Code](https://docs.anthropic.com/claude-code). Manages servers via Telegram or CLI — handles upgrades, reverse proxy, DNS, containers, VMs, backups, and documentation automatically.
 
-## Unterstützte Plattformen
+One template repo, N machines. Each machine gets its own repo cloned from the template, with shared agents/skills synced via git.
 
-- **OS:** Debian 12+ / Ubuntu 22.04+
-- **Architektur:** amd64, arm64
-- **Init:** systemd
-- **Paketmanager:** apt (dpkg-basiert)
-
-## Konzept
-
-Ein **Template-Repo** mit Agenten, Skills, Hooks und Scripts. Pro Maschine ein
-eigenes Repo per `git clone` + Remote-Rename. Kein SSH-Key, kein Fork nötig —
-nur HTTPS mit einem Fine-Grained Personal Access Token pro Maschine.
+## How it works
 
 ```
-  sysadmin-agent (Template)
-        │
-        ├── clone → sysadmin-rpi5-dad
-        ├── clone → sysadmin-vps-hetzner
-        └── clone → sysadmin-office-srv
-              │
-              ├── upstream → sysadmin-agent      (template, shared)
-              ├── origin   → sysadmin-vps-hetzner (machine, inkl. local/)
-              └── local/.env → GITHUB_TOKEN       (gitignored)
+You (Telegram / CLI)
+        |
+  +-----v------------------------------------------+
+  |  Orchestrator Agent                             |
+  |  Routes tasks to specialized sub-agents         |
+  +-------------------------------------------------+
+  |  Sub-Agents        Skills          Hooks        |
+  |  system-updater    app-install     pre: validate|
+  |  caddy             health-check   pre: backup   |
+  |  docker            dns-record     post: track   |
+  |  k3s               caddy-onboard  post: log     |
+  |  kvm               doc-update                   |
+  |  tailscale         rollback                     |
+  |  backup            notify                       |
+  +-------------------------------------------------+
 ```
 
-## Setup
+The orchestrator receives tasks via Telegram or CLI, delegates to the right sub-agent, verifies the result, documents everything, and reports back.
 
-### 1. Template-Repo (einmalig)
+## Supported platforms
+
+- Debian 12+ / Ubuntu 22.04+
+- amd64, arm64
+- systemd, apt
+
+## Quick start
+
+### Prerequisites
+
+- A Linux server (Debian/Ubuntu)
+- [Claude Code](https://docs.anthropic.com/claude-code) installed
+- A GitHub account with two repos: one for the template, one for this machine
+
+### 1. Create a GitHub PAT
+
+Go to [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new):
+
+- **Name:** your machine hostname
+- **Expiration:** 90 days (use `/rotate-token` to renew)
+- **Repository access:** select the template repo + your machine repo
+- **Permissions:** Contents: Read and write
+
+### 2. Create an empty machine repo on GitHub
+
+Create `sysadmin-<hostname>` — completely empty (no README, no .gitignore).
+
+### 3. Clone and setup
 
 ```bash
-# Dieses Repo auf GitHub pushen
-cd sysadmin-agent
-git init && git add -A && git commit -m "initial template"
-git remote add origin https://github.com/you/sysadmin-agent.git
-git push -u origin main
-```
-
-### 2. GitHub PAT erstellen (pro Maschine)
-
-1. Gehe zu **[github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)**
-2. Name: `sysadmin-rpi5-dad` (oder wie die Maschine heißt)
-3. Expiration: 90 Tage (Erinnerung: `/rotate-token`)
-4. **Repository access:** "Only select repositories"
-   → `sysadmin-agent` (Template) + `sysadmin-rpi5-dad` (Maschine)
-5. **Permissions → Repository:**
-   → Contents: **Read and write**
-   → Metadata: Read-only (automatisch)
-6. Token kopieren: `github_pat_XXXXXXXXXXXX`
-
-### 3. Leeres Maschinen-Repo auf GitHub
-
-Erstelle `sysadmin-rpi5-dad` — **komplett leer** (keine README, kein .gitignore).
-
-### 4. Voraussetzungen auf der Maschine
-
-```bash
-# Systempakete (Debian/Ubuntu)
-sudo apt install -y git curl jq unzip
-```
-
-[Claude Code](https://docs.anthropic.com/claude-code) installieren (falls noch nicht vorhanden).
-
-`bun` wird von `setup.sh` automatisch installiert — es wird vom Telegram-Channel-MCP-Plugin benötigt.
-
-### 5. Auf der Maschine
-
-```bash
-# Template klonen (mit Token geht das erstmal ohne Auth, da public)
 git clone https://github.com/you/sysadmin-agent.git ~/sysadmin-agent
 cd ~/sysadmin-agent
 
-# Setup mit Token
 ./setup.sh \
-  --origin https://github.com/you/sysadmin-rpi5-dad.git \
-  --token github_pat_XXXXXXXXXXXX
-# → installiert bun (Telegram MCP-Runtime)
-# → installiert das Claude Code Telegram-Plugin
-# → konfiguriert Git-Credential-Helper, seeded local/
+  --origin https://github.com/you/sysadmin-<hostname>.git \
+  --token github_pat_XXXX
 
-# Zum Maschinen-Repo pushen (Token wird automatisch aus local/.env gelesen)
 git push -u origin main
-
-# Shell neu laden (bun in PATH aufnehmen)
 source ~/.bashrc
 ```
 
-### Was passiert bei `setup.sh`?
+`setup.sh` will:
+- Rename the clone remote to `upstream`, set your machine repo as `origin`
+- Store the token in `local/.env` (gitignored)
+- Configure a per-repo git credential helper
+- Seed `local/` from `templates/local/` with your machine's identity
+- Install `bun` (runtime for the Telegram plugin)
+- Install the Claude Code Telegram plugin
 
-1. `origin` (Template) wird zu `upstream` umbenannt
-2. Maschinen-Repo wird neues `origin`
-3. Token wird in `local/.env` gespeichert (gitignored!)
-4. Ein **per-Repo Git Credential Helper** wird konfiguriert:
-   - Liest `GITHUB_TOKEN` aus `local/.env` bei jedem `git push/pull`
-   - Kein Token in URLs, kein Token in globaler Git-Config
-   - Funktioniert nur in diesem Repo
-5. `local/` wird aus `templates/local/` geseeded, Maschinendaten eingetragen
-6. **`bun`** wird installiert (falls nicht vorhanden) — Runtime für das Telegram-MCP-Plugin
-7. **Claude Code Telegram-Plugin** wird installiert (`telegram@claude-plugins-official`)
+### 4. Set up Telegram
 
-### 6. Telegram einrichten
+Create a bot via [@BotFather](https://t.me/BotFather) on Telegram, then:
 
-Der Agent wird über einen Telegram-Bot erreichbar. Die Einrichtung folgt dem
-offiziellen Plugin-Flow — `setup.sh` hat bun und das Plugin bereits installiert.
-
-#### a) Bot bei BotFather erstellen
-
-Öffne [@BotFather](https://t.me/BotFather) auf Telegram und sende `/newbot`.
-BotFather fragt nach:
-
-- **Name** — Anzeigename im Chat (frei wählbar, z.B. `Sysadmin RPi5`)
-- **Username** — eindeutiger Handle, muss auf `bot` enden (z.B. `sysadmin_rpi5_bot`)
-
-BotFather antwortet mit einem Token wie `123456789:AAHfiqksKZ8...` — das ist
-der vollständige Token inklusive führender Zahl und Doppelpunkt.
-
-#### b) Token hinterlegen
-
-In einer Claude Code Session (`claude`):
-
-```
-/telegram:configure 123456789:AAHfiqksKZ8...
+```bash
+claude
+# In the session:
+/telegram:configure <bot-token>
 ```
 
-Das schreibt `TELEGRAM_BOT_TOKEN=...` nach `~/.claude/channels/telegram/.env`.
-Alternativ kann man die Datei von Hand anlegen oder die Variable in der Shell
-setzen (Shell hat Vorrang).
-
-#### c) Agent mit Telegram-Channel starten
+Start the agent with Telegram connected:
 
 ```bash
 claude --channels plugin:telegram@claude-plugins-official --agent orchestrator
 ```
 
-Ohne `--channels` verbindet sich das Plugin nicht — der Bot bleibt stumm.
-
-#### d) Pairing — eigene Telegram-ID verknüpfen
-
-Schreibe dem Bot eine DM auf Telegram. Er antwortet mit einem 6-stelligen
-Pairing-Code. In der laufenden Claude Code Session:
+Send the bot a DM, then pair with the code it returns:
 
 ```
 /telegram:access pair <code>
-```
-
-Danach kommen deine Nachrichten beim Agenten an.
-
-#### e) Zugriff absichern
-
-Pairing dient nur zur ID-Erfassung. Sobald du verknüpft bist, auf Allowlist
-umschalten, damit Fremde keine Pairing-Codes bekommen:
-
-```
 /telegram:access policy allowlist
 ```
 
-> Telegram-Bots akzeptieren DMs sofort — ohne Allowlist könnte jeder den
-> Pairing-Flow starten.
-
-### Telegram manuell nachholen
-
-Falls `setup.sh` übersprungen wurde oder bun/Plugin fehlen:
+### 5. Run as a service
 
 ```bash
-# bun installieren
-curl -fsSL https://bun.sh/install | bash && source ~/.bashrc
-
-# Plugin installieren
-claude plugin install telegram@claude-plugins-official
+./setup.sh --start
+# or manually:
+sudo systemctl enable --now sysadmin-agent
 ```
 
-### Token-Sicherheit
+The systemd service runs the agent in a tmux session with automatic restart and crash alerting.
 
-| Wo?                          | Token? |
-|------------------------------|--------|
-| `local/.env`                 | ✅ Hier, gitignored |
-| Git Remote-URLs              | ❌ Nie |
-| Globale `~/.gitconfig`       | ❌ Nie |
-| `git remote -v` Output       | ❌ Nie, nur HTTPS-URL ohne Token |
-| Git Commit History           | ❌ Nie |
-| Shell History                | ⚠️ `setup.sh` versucht History zu deaktivieren |
-
-## Benutzung
+## Usage
 
 ### Via Telegram
 
+Send natural language messages to your bot:
+
 ```
-"Systemstatus"               → Health Check
-"Update das System"           → Guided Upgrade
-"Welche Container laufen?"    → Docker Status
+"Run a security update"
+"What services are failing?"
+"Add a reverse proxy for grafana on port 3000"
+"Show disk usage"
 ```
 
 ### Via CLI
 
 ```bash
-claude --agent orchestrator                                # interaktiv
-claude --agent orchestrator -p "Zeige fehlgeschlagene Services"  # einmalig
-claude --agent caddy -p "Füge upstream für grafana hinzu"        # direkt
+claude --agent orchestrator                              # interactive
+claude --agent orchestrator -p "show failed services"    # one-shot
+claude --agent caddy -p "add upstream for grafana"       # direct sub-agent
 ```
 
-### Slash Commands
+### Commands
 
-| Command          | Beschreibung                              |
-|------------------|-------------------------------------------|
-| `/status`        | System-Überblick                          |
-| `/health`        | Schneller Health-Check mit Issue-Flagging |
-| `/upgrade`       | System-Upgrade mit Safety Checks          |
-| `/inventory`     | Komplettes System-Inventory               |
-| `/contribute`    | Verbesserung ans Template senden          |
-| `/sync`          | Template-Updates holen                    |
-| `/rotate-token`  | GitHub PAT erneuern                       |
+| Command         | Description                              |
+|-----------------|------------------------------------------|
+| `/status`       | Quick system overview                    |
+| `/health`       | Health check with issue flagging         |
+| `/upgrade`      | System upgrade with safety checks        |
+| `/install`      | Interactive app installation             |
+| `/dns`          | Manage Route53 DNS records               |
+| `/inventory`    | Full system inventory scan               |
+| `/sync`         | Pull updates from the template repo      |
+| `/contribute`   | Propose improvements back to template    |
+| `/rotate-token` | Renew the GitHub PAT                     |
 
-## Template-Updates verteilen
+## Repository model
+
+```
+Template repo (upstream)              Machine repo (origin)
+sysadmin-agent                        sysadmin-mini-core
++----------------------+              +--------------------------+
+| .claude/agents/      |---clone--->  | .claude/agents/          |
+| .claude/skills/      |              | .claude/skills/          |
+| .claude/commands/    |              | .claude/commands/        |
+| scripts/             |              | scripts/                 |
+| docs/recipes/        |              | docs/recipes/            |
+| docs/examples/       |              | docs/examples/           |
+| templates/local/     |              | templates/local/         |
+| CLAUDE.md            |              | CLAUDE.md                |
+|                      |              |                          |
+| (no local/)          |  <-- /sync   | local/  <-- ONLY here    |
+|                      |              | +-- CLAUDE.local.md      |
+|                      |  /contribute | +-- docs/                |
+|                      |  ----------> | +-- dns/                 |
++----------------------+              | +-- dashboard/           |
+                                      | +-- .env (gitignored)   |
+                                      +--------------------------+
+```
+
+### 3-tier content model
+
+| Tier | Directory | Where | Purpose |
+|------|-----------|-------|---------|
+| 1 | `templates/local/` | Template repo | Seed files with placeholders. Copied to `local/` by `setup.sh`. Bug fixes synced via `/sync`. |
+| 2 | `docs/examples/` | Template repo | Sanitized real-world docs from actual machines. Reference only. |
+| 3 | `local/` | Machine repo only | Live configs, real hostnames/IPs. Never in the template. |
+
+### Keeping machines in sync
 
 ```bash
-/sync --dry-run    # was ändert sich?
-/sync              # merge von upstream/main
-git push           # Maschinen-Repo aktualisieren
+/sync              # Pull shared updates from template into machine repo
+/contribute        # Push universal improvements from machine back to template
 ```
 
-## Verbesserungen teilen
+## Agents
 
-```bash
-/contribute --file .claude/agents/caddy.md "besseres TLS-Handling"
-# → Branch auf upstream, dort mergen
-# → Andere Maschinen holen per /sync
+| Agent | Purpose | Key capabilities |
+|-------|---------|-----------------|
+| **orchestrator** | Central router | Task routing, health checks, documentation, Telegram replies |
+| **system-updater** | OS updates | Security patches, full upgrades, kernel management, reboot scheduling |
+| **caddy** | Reverse proxy | Site management, TLS certs, auth portal, user management |
+| **docker** | Containers | Docker/Compose lifecycle, image updates, volume management |
+| **k3s** | Kubernetes | Deployments, manifests, troubleshooting |
+| **kvm** | Virtual machines | Creation, snapshots, networking, resource allocation |
+| **tailscale** | Mesh VPN | Node management, ACLs, exit nodes, subnet routing |
+| **backup** | Backups | btrfs snapshots, rsync, verification, restore |
+
+Sub-agents can be overridden per machine by placing a file in `local/agents/`.
+
+## App recipes
+
+Ready-to-use installation recipes in `docs/recipes/`:
+
+| Recipe | Description |
+|--------|-------------|
+| `caddy.md` | Reverse proxy with auth portal |
+| `adguard-home.md` | DNS server via Podman Quadlet |
+| `cockpit.md` | Web-based system admin behind Caddy auth |
+| `dashboard.md` | System dashboard (Bun + Alpine.js) |
+| `route53-dns.md` | File-based AWS Route53 DNS management |
+| `home-assistant.md` | Home Assistant OS in a KVM VM |
+| `unifi-os-server.md` | UniFi OS via Podman |
+| `zerotier.md` | ZeroTier mesh VPN |
+| `gitea.md` | Self-hosted Git server |
+
+Use `/install <app>` to run a recipe interactively.
+
+## Scheduled tasks
+
+| Schedule | Task | Agent |
+|----------|------|-------|
+| Daily 02:00 | btrfs snapshot + prune | backup |
+| Daily 03:00 | Security update check | system-updater |
+| Weekly Sun 04:00 | Full system upgrade | system-updater |
+| Daily 06:00 | Health check | orchestrator |
+| Weekly Mon 05:00 | Backup verification | backup |
+| Monthly 1st 05:30 | Full inventory refresh | orchestrator |
+
+Cron tasks run via `scripts/cron/cron-runner.sh` which invokes the orchestrator in headless mode.
+
+## Directory structure
+
+```
+.
++-- CLAUDE.md                  # Agent system prompt and rules
++-- README.md                  # This file
++-- setup.sh                   # Machine onboarding script
++-- .gitignore
++-- .env.example               # Template for local/.env
+|
++-- .claude/
+|   +-- agents/                # Sub-agent definitions
+|   +-- skills/                # Reusable task templates
+|   +-- commands/              # Slash command definitions
+|   +-- settings.json          # Permissions and hooks
+|
++-- scripts/
+|   +-- agent/                 # Agent lifecycle (start, run, systemd)
+|   +-- caddy/                 # Caddy helper scripts
+|   +-- cron/                  # Scheduled task runner
+|   +-- dns/                   # Route53 sync and dynamic DNS
+|   +-- git/                   # Upstream sync and contribute
+|   +-- hooks/                 # Pre/post tool-use hooks
+|   +-- lib/                   # Shared shell library
+|
++-- docs/
+|   +-- conventions.md         # Cross-agent rules
+|   +-- recipes/               # App installation recipes
+|   +-- examples/apps/         # Sanitized reference docs (Tier 2)
+|   +-- apps/_template.md      # Template for app documentation
+|   +-- runbooks/_template.md  # Template for runbooks
+|
++-- templates/
+|   +-- local/                 # Seed files for new machines (Tier 1)
+|
++-- local/                     # Machine-specific (not in template, Tier 3)
+    +-- CLAUDE.local.md        # Machine identity and overrides
+    +-- .env                   # Secrets (gitignored)
+    +-- agents/                # Local agent overrides
+    +-- dashboard/             # System dashboard source
+    +-- dns/                   # DNS records and config
+    +-- docs/                  # Machine documentation
+    |   +-- apps/              # Per-app docs
+    |   +-- system/            # System state docs
+    |   +-- changelog.md       # Append-only change log
+    |   +-- conventions.md     # Machine-specific conventions
+    +-- logs/                  # Runtime logs (gitignored)
+    +-- systemd/               # Machine-specific service units
 ```
 
-## Agenten
+## Safety rules
 
-| Agent              | Zweck                                     |
-|--------------------|-------------------------------------------|
-| `orchestrator`     | Routing, Health Checks, Doku              |
-| `system-updater`   | OS-Updates, Security Patches              |
-| `caddy`            | Reverse Proxy, TLS                        |
-| `k3s`              | Kubernetes                                |
-| `kvm`              | KVM/libvirt VMs                           |
-| `docker`           | Docker & Compose                          |
-| `tailscale`        | Mesh VPN                                  |
-| `backup`           | btrfs Snapshots, rsync                    |
+1. **Document everything** — every change is logged in `local/docs/changelog.md`
+2. **Git commit after every logical unit** — conventional commits
+3. **No destructive commands without confirmation** — unless in unattended mode
+4. **Dry-run first** — for upgrades, config changes, and service restarts
+5. **Rollback plan** — configs backed up to `<file>.bak.<date>` before modification
+6. **Shared improvements** — universal fixes contributed upstream via `/contribute`
 
-## Lizenz
+## Token security
+
+| Location | Token present? |
+|----------|---------------|
+| `local/.env` | Yes (gitignored) |
+| Git remote URLs | Never |
+| Global `~/.gitconfig` | Never |
+| `git remote -v` output | Never |
+| Git commit history | Never |
+
+## License
 
 MIT
