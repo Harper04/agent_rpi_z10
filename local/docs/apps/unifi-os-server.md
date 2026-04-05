@@ -53,6 +53,8 @@ Installed per `docs/recipes/unifi-os-server.md` → Post-Install → WebRTC fix.
 | UOS UUID       | `fed86db9-122d-5b89-86a9-8b2e35d15b1f`         |
 | Network mode   | `pasta`                                        |
 | Web UI         | `https://192.168.2.32:11443/` (DHCP — may change) |
+| Web UI (Caddy) | `https://unifi.z10.local.tiny-systems.eu`          |
+| Web UI (ZT)    | `https://unifi.z10.zt.tiny-systems.eu`             |
 
 ### Key paths — Binaries & config
 
@@ -197,6 +199,18 @@ sudo uosserver-purge
 sudo uosserver help
 ```
 
+## Reverse Proxy (Caddy)
+
+Proxied through Caddy at `https://unifi.z10.local.tiny-systems.eu` and
+`https://unifi.z10.zt.tiny-systems.eu` (ZeroTier).
+
+- **Site block:** `/etc/caddy/sites/unifi.caddy`
+- **DNS (LAN):** `unifi.z10.local.tiny-systems.eu` → CNAME → `z10.local.tiny-systems.eu`
+- **DNS (ZT):** `unifi.z10.zt.tiny-systems.eu` → CNAME → `z10.zt.tiny-systems.eu`
+- **Auth:** OFF (UniFi has its own SSO auth)
+- **Upstream:** `https://192.168.2.32:11443` with `tls_insecure_skip_verify` (self-signed cert)
+- **Post-proxy config:** None needed — UniFi accepts X-Forwarded-For from any source
+
 ## Known Issues & Gotchas
 
 - **CPU lockups on ARM64**: Some reports of 100% CPU every 4-5 days. Monitor and restart if needed.
@@ -217,4 +231,5 @@ sudo uosserver help
 | 2026-04-04 | Purge & reinstall after relocation (IP changed from .171 to .32) | orchestrator |
 | 2026-04-04 | Investigated WebRTC/remote access failure — pasta networking limitation, no fix | orchestrator |
 | 2026-04-04 | Updated UOS UUID, IP, documented known issues | orchestrator |
+| 2026-04-05 | Added Caddy reverse proxy + DNS (LAN + ZT) + dashboard          | orchestrator |
 | 2026-04-04 | Fixed WebRTC remote access — dummy br0 in container namespace + systemd service | orchestrator |
