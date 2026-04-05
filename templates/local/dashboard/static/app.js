@@ -162,34 +162,98 @@ function dashboard() {
       this.openZones[name] = !this.openZones[name];
     },
 
-    groupRecords(records, zoneName) {
+    /**
+     * Build a compact DNS tree from flat records.
+     * Returns flat rows with depth for indentation.
+     *
+     * Each row: { label, fqdn, depth, types[], records[], expanded }
+     *   - label: display name ("myhost", "zt > z10", "@ (root)")
+     *   - types: unique record types for inline badges
+     *   - records: full record objects for expanded view
+     *   - expanded: whether values are shown
+     *
+     * Single-child chains are collapsed: zt > z10 becomes one row.
+     */
+    buildDnsRows(records, zoneName) {
       if (!records) return [];
 
-      // Group by host prefix (subdomain)
-      const groups = {};
-      for (const rec of records) {
-        // Determine the group label
-        let label;
-        if (rec.name === zoneName) {
-          label = "@ (root)";
-        } else {
-          // Strip the zone suffix to get the subdomain
-          const sub = rec.name.replace("." + zoneName, "").replace(zoneName, "");
-          label = sub || "@ (root)";
-        }
+      // Step 1: build raw tree
+      const root = { label: zoneName, children: {}, records: [] };
 
-        if (!groups[label]) {
-          groups[label] = { label, records: [], open: label === "@ (root)" };
+      for (const rec of records) {
+        const sub = rec.name === zoneName ? "" : rec.name.replace("." + zoneName, "");
+        if (!sub) { root.records.push(rec); continue; }
+
+        const parts = sub.split(".").reverse();
+        let node = root;
+        for (const part of parts) {
+          if (!node.children[part]) {
+            node.children[part] = { label: part, children: {}, records: [] };
+          }
+          node = node.children[part];
         }
-        groups[label].records.push(rec);
+        node.records.push(rec);
       }
 
-      // Sort: root first, then alphabetically
-      return Object.values(groups).sort((a, b) => {
-        if (a.label === "@ (root)") return -1;
-        if (b.label === "@ (root)") return 1;
-        return a.label.localeCompare(b.label);
-      });
+      // Step 2: flatten to rows, collapsing single-child chains
+      const rows = [];
+
+      const flatten = (node, depth, isRoot) => {
+        const kids = Object.values(node.children).sort((a, b) => a.label.localeCompare(b.label));
+
+        // Add this node's own records as a row
+        if (node.records.length > 0) {
+          const label = isRoot ? "@ (root)" : node.label;
+          const fqdn = node.records[0]?.name || zoneName;
+          const types = [...new Set(node.records.map(r => r.type))];
+          // Merge A+AAAA display
+          const mergedTypes = types.filter(t => t !== "AAAA" || !types.includes("A"))
+            .map(t => t === "A" && types.includes("AAAA") ? "A/AAAA" : t);
+          rows.push({ label, fqdn, depth, types: mergedTypes, records: node.records, expanded: false });
+        }
+
+        // Process children
+        for (const kid of kids) {
+          // Collapse single-child chains: if kid has no records and exactly 1 child,
+          // merge labels with " > "
+          let current = kid;
+          let chainLabel = kid.label;
+          while (current.records.length === 0 && Object.keys(current.children).length === 1) {
+            const only = Object.values(current.children)[0];
+            chainLabel += " > " + only.label;
+            current = only;
+          }
+
+          if (current !== kid) {
+            // Collapsed chain — use the merged label and process current's content
+            const mergedNode = { ...current, label: chainLabel };
+            flatten(mergedNode, depth + 1, false);
+          } else {
+            // Normal node with records or multiple children
+            const hasKids = Object.keys(kid.children).length > 0;
+            if (hasKids && kid.records.length > 0) {
+              // Branch node with own records — show as parent row
+              const fqdn = kid.records[0]?.name || "";
+              const types = [...new Set(kid.records.map(r => r.type))];
+              const mergedTypes = types.filter(t => t !== "AAAA" || !types.includes("A"))
+                .map(t => t === "A" && types.includes("AAAA") ? "A/AAAA" : t);
+              rows.push({ label: kid.label, fqdn, depth: depth + 1, types: mergedTypes, records: kid.records, expanded: false, hasChildren: true });
+              // Then recurse children only
+              const grandkids = Object.values(kid.children).sort((a, b) => a.label.localeCompare(b.label));
+              for (const gk of grandkids) flatten(gk, depth + 2, false);
+            } else if (hasKids) {
+              // Branch node, no own records — just recurse
+              flatten(kid, depth + 1, false);
+            } else {
+              // Leaf node
+              flatten(kid, depth + 1, false);
+            }
+          }
+        }
+      };
+
+      flatten(root, 0, true);
+      return rows;
     },
 
     formatBytes(bytes) {
