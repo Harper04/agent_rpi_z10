@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-05 06:00 — orchestrator
+
+**Action:** Switched DNS from wildcard to explicit per-app records
+**Reason:** Operator wants explicit DNS records for each Caddy virtual hostname; wildcards kept only for TLS cert issuance
+**Details:**
+- Created explicit CNAME records: auth.z10.local.tiny-systems.eu, adguard.z10.local.tiny-systems.eu
+- Deleted wildcard CNAME record: *.z10.local.tiny-systems.eu
+- Fixed TTL mismatch bug in dns-sync.sh DELETE for owner TXT records (used DEFAULT_TTL instead of actual Route53 TTL)
+- Updated caddy-onboard-app skill: always create explicit DNS record, never rely on wildcard
+- Updated dns-record skill: added "Explicit Records Only" policy section
+**Files changed:** local/dns/records/auth.z10.local.tiny-systems.eu (created), local/dns/records/adguard.z10.local.tiny-systems.eu (created), local/dns/records/*.z10.local.tiny-systems.eu (deleted), scripts/dns/dns-sync.sh (bugfix), .claude/skills/caddy-onboard-app.md, .claude/skills/dns-record.md
+**Verification:** dns-sync.sh dry-run shows 0 changes — Route53 in sync
+**Upstream proposed:** yes (dns-sync.sh bugfix, skill updates)
+
+---
+
 ## 2026-04-04 15:56 — orchestrator
 
 **Action:** Added dynamic DNS update on IP change

@@ -319,8 +319,10 @@ for fqdn in "${!OWNED_FQDNS[@]}"; do
       --arg name "${fqdn}." \
       '.ResourceRecordSets[] | select(.Name == $name and .Type != "TXT") | [.Type, (.TTL | tostring), (.ResourceRecords | tojson)] | @tsv')
 
-    # Delete owner TXT
-    owner_change=$(make_change "DELETE" "_owner.${fqdn}" "TXT" "$DEFAULT_TTL" "\"managed-by=$OWNER_TAG\"")
+    # Delete owner TXT (must use actual TTL from Route53 for DELETE to match)
+    owner_ttl=$(get_existing_ttl "$zone_id" "_owner.${fqdn}" "TXT")
+    owner_ttl="${owner_ttl:-$DEFAULT_TTL}"
+    owner_change=$(make_change "DELETE" "_owner.${fqdn}" "TXT" "$owner_ttl" "\"managed-by=$OWNER_TAG\"")
     add_zone_change "$zone_id" "$owner_change"
   fi
 done
