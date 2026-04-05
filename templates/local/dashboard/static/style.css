@@ -355,35 +355,67 @@ main {
   margin-top: 0.35rem;
 }
 
-.record-group {
-  margin-bottom: 0.25rem;
+/* ── DNS Compact Rows ────────────────────────────────────────────── */
+.dns-rows {
+  margin-top: 0.25rem;
 }
 
-.record-group-header {
+.dns-row {
+  border-bottom: 1px solid var(--border);
+}
+.dns-row:last-child { border-bottom: none; }
+
+.dns-row-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.45rem 0.5rem;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
   transition: background 0.1s;
+  min-height: 2rem;
 }
+.dns-row-header:hover { background: var(--bg-hover); }
 
-.record-group-header:hover {
-  background: var(--bg-hover);
-}
-
-.record-group-header i {
-  color: var(--text-dim);
-  font-size: 0.8rem;
-  width: 0.8rem;
-  text-align: center;
-}
-
-.record-host {
+.dns-row-label {
+  font-family: monospace;
+  font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text);
+  color: var(--accent-light);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dns-row-label:hover { text-decoration: underline; }
+
+.dns-row-types {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.rec-type-sm {
+  font-size: 0.6rem;
+  padding: 0.05rem 0.3rem;
+}
+
+.dns-row-chevron {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.dns-row-detail {
+  padding: 0.15rem 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dns-detail-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .record-count {
@@ -392,10 +424,6 @@ main {
   background: var(--border);
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
-}
-
-.record-entries {
-  margin-left: 1.3rem;
 }
 
 .record-entry {
@@ -453,6 +481,16 @@ main {
   word-break: break-all;
   flex: 1;
   min-width: 0;
+}
+
+a.rec-link {
+  text-decoration: none;
+  color: var(--accent-light);
+  transition: color 0.15s;
+}
+a.rec-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .rec-value {
