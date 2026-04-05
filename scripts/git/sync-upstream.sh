@@ -65,46 +65,12 @@ if $DRY_RUN; then
 fi
 
 echo ""
-
-# --- Protect local/ from upstream deletions ---
-# Upstream should never contain local/, but if it once did and then removed
-# those files, the merge would propagate the deletion. Snapshot local/ before
-# merging so we can restore it afterwards.
-LOCAL_SNAPSHOT=""
-if [ -d "$REPO_ROOT/local" ] && [ "$(git ls-files local/ | wc -l)" -gt 0 ]; then
-  LOCAL_SNAPSHOT=$(mktemp -d)
-  echo "🔒 Snapshotting local/ before merge..."
-  git ls-files local/ | while read -r f; do
-    mkdir -p "$LOCAL_SNAPSHOT/$(dirname "$f")"
-    cp "$f" "$LOCAL_SNAPSHOT/$f"
-  done
-fi
-
 if [ "$MODE" = "rebase" ]; then
   echo "🔄 Rebasing onto upstream/main..."
   git rebase upstream/main
 else
   echo "🔀 Merging upstream/main..."
   git merge upstream/main --no-edit -m "chore: sync with upstream template $(date -I)"
-fi
-
-# --- Restore local/ if the merge deleted any files ---
-if [ -n "$LOCAL_SNAPSHOT" ]; then
-  DELETED=$(git diff --name-only --diff-filter=D HEAD~1 -- local/ 2>/dev/null || true)
-  if [ -n "$DELETED" ]; then
-    echo "⚠️  Merge deleted local/ files — restoring from snapshot..."
-    echo "$DELETED" | while read -r f; do
-      if [ -f "$LOCAL_SNAPSHOT/$f" ]; then
-        mkdir -p "$(dirname "$f")"
-        cp "$LOCAL_SNAPSHOT/$f" "$f"
-        git add "$f"
-        echo "  restored: $f"
-      fi
-    done
-    git commit -m "fix: restore local/ files deleted by upstream merge"
-    echo "✅ local/ files restored."
-  fi
-  rm -rf "$LOCAL_SNAPSHOT"
 fi
 
 echo ""
