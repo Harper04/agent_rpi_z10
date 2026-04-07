@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-07 18:50 — orchestrator
+
+**Action:** Enable SSH addon for Home Assistant, configure trusted_proxies, verify Caddy proxy
+**Reason:** Enable SSH access to HAOS; fix reverse proxy HTTP 400 errors from missing trusted_proxies
+**Files changed:**
+- `/homeassistant/configuration.yaml` (inside HAOS VM) — trusted_proxies: 192.168.2.93 added
+- SSH addon options via Supervisor API — authorized_keys set, port 22/tcp mapped to 22222
+- `local/docs/apps/home-assistant.md` — SSH section added, gotchas documented
+**Verification:**
+- `ssh -i ~/.ssh/id_ed25519_ha -p 22222 root@192.168.2.182` → connects ✓
+- `curl https://ha.s85.zt.tiny-systems.eu/` → HTTP 200 ✓
+- `curl https://ha.s85.local.tiny-systems.eu/` → HTTP 200 ✓
+- HA core restarted via SSH; came back up in <60s ✓
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 14:45 — orchestrator
 
 **Action:** Install Home Assistant OS 17.2 via KVM + bridge network
