@@ -36,6 +36,7 @@
 | home-assistant   | kvm          | active (VM @ 192.168.2.182) |
 | unifi-os-server  | docker       | active (podman, port 11443) |
 | adguard-home     | docker       | active (podman, port 53 DNS + 3000 web UI) |
+| cockpit          | orchestrator | active (port 9090 localhost, proxied by Caddy) |
 
 ## Local Overrides
 
@@ -63,6 +64,7 @@
 | 6789   | uosserver    | UniFi speed test |
 | 53     | adguard-home | DNS (UDP+TCP, bound to 192.168.2.93 and 192.168.195.217 only) |
 | 3000   | adguard-home | AdGuard Home web UI (localhost only, proxied by Caddy) |
+| 9090   | cockpit      | Cockpit web UI (localhost only, proxied by Caddy) |
 
 ### Local Agents
 

@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-07 18:55 — orchestrator
+
+**Action:** Installed Cockpit with cockpit-podman, cockpit-machines, cockpit-storaged plugins
+**Reason:** Operator requested web-based server management UI with Podman and KVM support
+**Files changed:**
+- `/etc/cockpit/cockpit.conf` (created) — WebService trusted origins
+- `/etc/systemd/system/cockpit.socket.d/listen.conf` (created) — restrict to localhost
+- `/etc/caddy/sites/cockpit.caddy` (created) — Caddy reverse proxy for both LAN and ZT domains
+- `local/docs/apps/cockpit.md` (created) — app documentation
+- `local/CLAUDE.local.md` (updated) — added cockpit to app table and port 9090 to ports table
+**Verification:** cockpit.socket active, listening on 127.0.0.1:9090 only, Caddy reloaded successfully (TLS cert issuance initiated for both domains)
+**Note:** NetworkManager was pulled in as a dependency of cockpit-networkmanager. It is active but not managing any interfaces — netplan retains control of eth0/br0 and host IP 192.168.2.93.
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 18:04 — docker
 
 **Action:** Install AdGuard Home as Podman container (Quadlet systemd unit)
