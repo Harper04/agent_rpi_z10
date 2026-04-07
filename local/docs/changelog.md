@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-04-07 18:04 — docker
+
+**Action:** Install AdGuard Home as Podman container (Quadlet systemd unit)
+
+**Why:** Network-wide DNS ad blocking for LAN and ZeroTier clients.
+
+**What changed:**
+- Created `/opt/adguardhome/{conf,work}/` data directories
+- Pre-seeded `/opt/adguardhome/conf/AdGuardHome.yaml` (DNS bound to 192.168.2.93 and 192.168.195.217, port 53; web UI on 0.0.0.0:3000; Cloudflare+Google DoH upstreams; AdGuard+AdAway filter lists)
+- Created `/etc/containers/systemd/adguardhome.container` Quadlet unit (host networking, AutoUpdate=registry)
+- Started `adguardhome.service` via `systemctl start` (Quadlet generated units are transient, not enable-able)
+- Created `/etc/caddy/sites/adguard.caddy` — LAN domain open, ZT domain auth-gated via `default_policy`
+- Created Route53 CNAME records: `adguard.s85.local.tiny-systems.eu` and `adguard.s85.zt.tiny-systems.eu`
+- Reloaded Caddy; TLS certs being issued via DNS-01 challenge
+- Created `local/docs/apps/adguard-home.md`
+- Updated `local/CLAUDE.local.md` (apps table + custom ports)
+
+**Image pulled:** `docker.io/adguard/adguardhome:latest` (v0.107.73)
+**DNS responds on:** 192.168.2.93:53 and 192.168.195.217:53
+**libvirt dnsmasq on 192.168.122.1:53 unaffected**
+
+---
+
 ## 2026-04-07 17:33 — caddy
 
 **Action:** Configure Caddy reverse proxy and DNS records for UniFi OS Server

@@ -35,6 +35,7 @@
 | libvirt/KVM      | kvm          | active  |
 | home-assistant   | kvm          | active (VM @ 192.168.2.182) |
 | unifi-os-server  | docker       | active (podman, port 11443) |
+| adguard-home     | docker       | active (podman, port 53 DNS + 3000 web UI) |
 
 ## Local Overrides
 
@@ -60,6 +61,8 @@
 | 8444   | uosserver    | UniFi portal HTTPS |
 | 3478   | uosserver    | STUN/UDP |
 | 6789   | uosserver    | UniFi speed test |
+| 53     | adguard-home | DNS (UDP+TCP, bound to 192.168.2.93 and 192.168.195.217 only) |
+| 3000   | adguard-home | AdGuard Home web UI (localhost only, proxied by Caddy) |
 
 ### Local Agents
 
