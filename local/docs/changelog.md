@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-04-07 14:08 — orchestrator
+
+**Action:** Install ZeroTier, join network `8286ac0e476c329b` (Core)
+**Reason:** Operator requested overlay VPN for machine-to-machine connectivity
+**Files changed:**
+- `/etc/apt/sources.list.d/zerotier.list` — ZeroTier apt repo added
+- `local/docs/apps/zerotier.md` — app doc created
+- `local/CLAUDE.local.md` — app table + ports updated
+**Verification:** `zerotier-cli listnetworks` shows status OK, ZT IP 192.168.195.217/24; eth0 remains at 192.168.2.93
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 11:27 — orchestrator
 
 **Action:** Full system inventory

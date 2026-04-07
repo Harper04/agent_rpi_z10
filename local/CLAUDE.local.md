@@ -26,6 +26,7 @@
 | App              | Agent        | Status  |
 |------------------|--------------|---------|
 | sysadmin-agent   | orchestrator | active  |
+| zerotier-one     | orchestrator | active  |
 
 ## Local Overrides
 
@@ -41,6 +42,7 @@
 | Port   | Service     | Reason for non-default |
 |--------|-------------|------------------------|
 | 22     | SSH         | Default                |
+| 9993   | zerotier-one | ZeroTier P2P (UDP)   |
 
 ### Local Agents
 
