@@ -11,7 +11,9 @@
 | OS               | Ubuntu 25.10 (kernel 6.17.0-1008-raspi) |
 | Architecture     | `aarch64`     |
 | Primary IP       | `192.168.2.93` (static, locked)         |
-| Tailscale IP     | `not configured`                         |
+| ZeroTier IP      | `192.168.195.217` (ztrta4apg4, net 8286ac0e476c329b) |
+| ZT domain        | `s85.zt.tiny-systems.eu`                 |
+| LAN domain       | `s85.local.tiny-systems.eu`              |
 | SSH Port         | `22`                         |
 | Managed by       | tom@altow.de                   |
 | Purpose          | Raspberry Pi 5 home server     |
@@ -27,6 +29,7 @@
 |------------------|--------------|---------|
 | sysadmin-agent   | orchestrator | active  |
 | zerotier-one     | orchestrator | active  |
+| aws-cli          | orchestrator | active  |
 
 ## Local Overrides
 

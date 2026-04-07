@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-04-07 14:18 — orchestrator
+
+**Action:** Route53 DNS setup — install aws-cli, create s85 ZT and LAN records
+**Reason:** Prerequisite for Caddy (DNS-01 TLS) and dashboard
+**Files changed:**
+- `local/dns/dns.conf` — OWNER_TAG=s85, IP_RECORD_MAP configured
+- `local/dns/records/s85.zt.tiny-systems.eu` — A → 192.168.195.217
+- `local/dns/records/s85.local.tiny-systems.eu` — A → 192.168.2.93
+- Route53: created 4 records (A + wildcard CNAME for both .zt and .local)
+- `local/CLAUDE.local.md` — ZT/LAN domains added
+**Verification:** All 4 records INSYNC in Route53; dig @8.8.8.8 confirms resolution
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 14:08 — orchestrator
 
 **Action:** Install ZeroTier, join network `8286ac0e476c329b` (Core)
