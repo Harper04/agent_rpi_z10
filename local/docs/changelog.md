@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-04-07T00:00:00Z — orchestrator
+
+**Action:** Create DNS records for Cockpit (LAN + ZeroTier)
+**Reason:** Add public DNS resolution for Cockpit web UI via Caddy reverse proxy
+**Files changed:**
+- `local/dns/records/cockpit.s85.local.tiny-systems.eu` — A 192.168.2.93
+- `local/dns/records/cockpit.s85.zt.tiny-systems.eu` — A 192.168.195.217
+- `local/docs/system/dns.md` — created DNS records reference document
+**Verification:** dns-sync.sh applied successfully; Route53 change ID C02491342F9HUP0I8KRS8 status PENDING (normal)
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 18:55 — orchestrator
 
 **Action:** Installed Cockpit with cockpit-podman, cockpit-machines, cockpit-storaged plugins
