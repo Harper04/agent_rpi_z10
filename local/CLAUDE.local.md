@@ -31,6 +31,7 @@
 | zerotier-one     | orchestrator | active  |
 | aws-cli          | orchestrator | active  |
 | caddy            | caddy        | active  |
+| dashboard        | orchestrator | active  |
 
 ## Local Overrides
 
@@ -49,6 +50,7 @@
 | 9993   | zerotier-one | ZeroTier P2P (UDP)   |
 | 80     | caddy        | HTTP → HTTPS redirect |
 | 443    | caddy        | HTTPS (TLS termination) |
+| 3100   | dashboard    | Bun server (localhost only) |
 
 ### Local Agents
 

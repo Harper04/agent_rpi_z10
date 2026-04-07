@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-04-07 14:36 — orchestrator
+
+**Action:** Install dashboard (Bun/TypeScript)
+**Reason:** System visibility, service discovery, DNS panel, ZeroTier panel
+**Files changed:**
+- `/etc/systemd/system/strandstr-pi-dashboard.service` — created
+- `/etc/sudoers.d/dashboard-agent-restart` — agent restart permission
+- `local/.env` — added DASHBOARD_PORT, DASHBOARD_SUBTITLE, DNS_RECORD_FILTERS
+- `local/docs/apps/dashboard.md` — created
+- `local/CLAUDE.local.md` — updated
+**Verification:** `curl http://localhost:3100/api/health` → 200; `https://s85.local.tiny-systems.eu/` → 200
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 14:27 — orchestrator
 
 **Action:** Install Caddy v2.11.2 with caddy-security + caddy-dns/route53 plugins
