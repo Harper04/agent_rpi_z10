@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-04-07 14:45 — orchestrator
+
+**Action:** Install Home Assistant OS 17.2 via KVM + bridge network
+**Reason:** Home automation platform; KVM provides full HAOS with Supervisor/Add-ons
+**Files changed:**
+- `/etc/netplan/99-static-eth0.yaml` — migrated from eth0 static to br0 bridge (host stays at .93)
+- `/var/lib/libvirt/images/haos_generic-aarch64-17.2.qcow2` — VM disk
+- `/etc/caddy/sites/home-assistant.caddy` — ZT + LAN reverse proxy, no auth
+- `local/dns/records/ha.s85.zt.tiny-systems.eu` — CNAME created
+- `local/dns/records/ha.s85.local.tiny-systems.eu` — CNAME created
+- `local/docs/apps/home-assistant.md` — created
+- `local/docs/system/network.md` — updated for br0
+- `local/docs/conventions.md` — bridge state annotated
+- `local/CLAUDE.local.md` — updated
+**Verification:** br0 @ 192.168.2.93 ✓; HAOS VM @ 192.168.2.182 responding HTTP 302 ✓
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 14:36 — orchestrator
 
 **Action:** Install dashboard (Bun/TypeScript)

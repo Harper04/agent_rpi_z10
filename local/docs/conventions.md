@@ -40,5 +40,9 @@ Rules:
 for SSH, reverse proxy, Tailscale, and other agents. A dynamic or incorrect
 host IP would break remote management.
 
+**Bridge state (2026-04-07):** br0 is active with eth0 as member. Host IP 192.168.2.93
+is assigned to br0. eth0 has no IP. This is the correct post-KVM-bridge state.
+`/etc/netplan/99-static-eth0.yaml` reflects this — do not revert to eth0-only config.
+
 **Added:** 2026-04-07
 **Owner:** orchestrator

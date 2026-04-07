@@ -32,6 +32,8 @@
 | aws-cli          | orchestrator | active  |
 | caddy            | caddy        | active  |
 | dashboard        | orchestrator | active  |
+| libvirt/KVM      | kvm          | active  |
+| home-assistant   | kvm          | active (VM @ 192.168.2.182) |
 
 ## Local Overrides
 
