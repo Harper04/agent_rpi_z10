@@ -5,6 +5,49 @@
 
 ---
 
+## 2026-04-07 17:33 — caddy
+
+**Action:** Configure Caddy reverse proxy and DNS records for UniFi OS Server
+
+**Changes:**
+- Created `/etc/caddy/sites/unifi.caddy` with multi-domain block for `unifi.s85.local.tiny-systems.eu` and `unifi.s85.zt.tiny-systems.eu`
+- Applied UniFi-specific proxy requirements: TLS upstream with `tls_insecure_skip_verify`, HTTP/1.1 forced via `alpn http/1.1` + `versions 1.1`, Origin and Location header rewrites
+- No `authorize with default_policy` on either domain — UniFi has its own login
+- Created Route53 CNAME records: `unifi.s85.zt.tiny-systems.eu` and `unifi.s85.local.tiny-systems.eu` (both CNAMEs to their parent domain, TTL 300)
+- Wrote local DNS record files to `local/dns/records/`
+- Let's Encrypt TLS certs obtained via DNS-01/Route53 for both domains
+- Caddy reloaded zero-downtime; both domains return HTTP 200
+
+**Reason:** Expose UniFi OS Server (running on port 11443) via Caddy with proper TLS termination and header handling
+
+---
+
+## 2026-04-07 17:24 — docker
+
+**Action:** Install UniFi OS Server v5.0.6 (uosserver) with Ubuntu 25.10 compatibility fixes
+**Reason:** UniFi network device controller; operator requested installation
+**Files changed:**
+- `/etc/systemd/system/uosserver.service` — added `Delegate=yes` (required for podman on kernel 6.17)
+- `/etc/systemd/system/uosserver.service.d/10-cgroup-fix.conf` — created; sets `CONTAINERS_CONF_OVERRIDE`
+- `/etc/uosserver/containers-override.conf` — created; forces `cgroup_manager = "cgroupfs"`
+- `/home/uosserver/.config/containers/containers.conf` — installer-created; helper_binaries_dir
+- `/etc/systemd/system/uos-webrtc-fix.service` — installed WebRTC fix (dummy br0 in container ns)
+- `local/systemd/uos-webrtc-fix.service` — repo copy with real REPO_PATH substituted
+- `local/docs/apps/docker/unifi-os-server.md` — created
+- `local/CLAUDE.local.md` — app table + ports updated
+**Verification:**
+- `sudo uosserver status` → container Up (healthy), all services running ✓
+- `ss -tlnp | grep 11443` → LISTEN ✓
+- `uos-webrtc-fix.service` → active (exited), br0 @ 192.168.2.93 created in container ns ✓
+- Host IP 192.168.2.93 on br0 unchanged ✓
+**Issues encountered:**
+- Initial installer failed: crun scope creation error under cgroup v2 / kernel 6.17
+- Container exited with code 255: cgroupfs read-only inside container without Delegate+cgroupfs fix
+- Container deleted before service start: manually recreated with matching podman args
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 18:50 — orchestrator
 
 **Action:** Enable SSH addon for Home Assistant, configure trusted_proxies, verify Caddy proxy

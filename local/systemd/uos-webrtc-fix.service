@@ -1,7 +1,7 @@
 # UOS WebRTC fix — create dummy br0 in container namespace.
 #
 # Install:
-#   sed "s|%REPO_PATH%|$(pwd)|g" templates/local/systemd/uos-webrtc-fix.service \
+#   sed "s|/home/tomjaster/sysadmin-agent|$(pwd)|g" templates/local/systemd/uos-webrtc-fix.service \
 #     | sudo tee /etc/systemd/system/uos-webrtc-fix.service > /dev/null
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now uos-webrtc-fix.service
@@ -13,7 +13,7 @@ Requires=uosserver.service
 
 [Service]
 Type=oneshot
-ExecStart=%REPO_PATH%/scripts/hooks/uos-webrtc-fix.sh
+ExecStart=/home/tomjaster/sysadmin-agent/scripts/hooks/uos-webrtc-fix.sh
 RemainAfterExit=yes
 
 [Install]

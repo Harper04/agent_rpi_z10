@@ -34,6 +34,7 @@
 | dashboard        | orchestrator | active  |
 | libvirt/KVM      | kvm          | active  |
 | home-assistant   | kvm          | active (VM @ 192.168.2.182) |
+| unifi-os-server  | docker       | active (podman, port 11443) |
 
 ## Local Overrides
 
@@ -53,6 +54,12 @@
 | 80     | caddy        | HTTP → HTTPS redirect |
 | 443    | caddy        | HTTPS (TLS termination) |
 | 3100   | dashboard    | Bun server (localhost only) |
+| 11443  | uosserver    | UniFi OS HTTPS (mapped from container :443) |
+| 8080   | uosserver    | UniFi device inform port |
+| 8443   | uosserver    | UniFi HTTPS UI |
+| 8444   | uosserver    | UniFi portal HTTPS |
+| 3478   | uosserver    | STUN/UDP |
+| 6789   | uosserver    | UniFi speed test |
 
 ### Local Agents
 
