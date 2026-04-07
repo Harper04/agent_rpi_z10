@@ -30,6 +30,7 @@
 | sysadmin-agent   | orchestrator | active  |
 | zerotier-one     | orchestrator | active  |
 | aws-cli          | orchestrator | active  |
+| caddy            | caddy        | active  |
 
 ## Local Overrides
 
@@ -46,6 +47,8 @@
 |--------|-------------|------------------------|
 | 22     | SSH         | Default                |
 | 9993   | zerotier-one | ZeroTier P2P (UDP)   |
+| 80     | caddy        | HTTP → HTTPS redirect |
+| 443    | caddy        | HTTPS (TLS termination) |
 
 ### Local Agents
 

@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-04-07 14:27 — orchestrator
+
+**Action:** Install Caddy v2.11.2 with caddy-security + caddy-dns/route53 plugins
+**Reason:** Reverse proxy + TLS + SSO auth portal for all web services
+**Files changed:**
+- `/usr/bin/caddy` — custom binary installed
+- `/etc/caddy/Caddyfile` — global config, ZT-primary auth portal
+- `/etc/caddy/env` — secrets (AWS, JWT, admin creds) mode 600
+- `/etc/caddy/sites/_auth.caddy` — auth portal at auth.s85.zt.tiny-systems.eu
+- `/etc/caddy/sites/default-zt.caddy` — dashboard behind auth on ZT
+- `/etc/caddy/sites/default-local.caddy` — dashboard open on LAN
+- `/etc/caddy/static/index.html` — fallback landing page
+- `local/docs/apps/caddy.md` — app doc created
+- `local/CLAUDE.local.md` — updated
+**Verification:** All 3 Let's Encrypt production certs obtained; service active
+**Upstream proposed:** no
+
+---
+
 ## 2026-04-07 14:18 — orchestrator
 
 **Action:** Route53 DNS setup — install aws-cli, create s85 ZT and LAN records
