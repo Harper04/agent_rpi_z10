@@ -11,10 +11,8 @@
 
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
     link/ether 2c:cf:67:8b:01:f3
-    inet 192.168.2.171/24 (DHCP, metric 100)
-    inet6 2003:e7:571d:553d:2ecf:67ff:fe8b:1f3/64 (global, dynamic)
-    inet6 fdb0:3dac:601d:1:2ecf:67ff:fe8b:1f3/64 (global, dynamic)
-    inet6 fe80::2ecf:67ff:fe8b:1f3/64 (link-local)
+    inet 192.168.2.93/24 (STATIC — locked, see conventions)
+    inet6 (link-local + global dynamic)
 
 3: wlan0: <BROADCAST,MULTICAST> mtu 1500  [DOWN]
     link/ether 2c:cf:67:8b:01:f4
@@ -22,11 +20,14 @@
 
 ## IP Addresses
 
-| Interface  | IP Address          | Type         |
-|------------|---------------------|--------------|
-| lo         | 127.0.0.1           | Loopback     |
-| eth0       | 192.168.2.171/24    | DHCP         |
-| wlan0      | —                   | Down         |
+| Interface  | IP Address          | Type                        |
+|------------|---------------------|-----------------------------|
+| lo         | 127.0.0.1           | Loopback                    |
+| eth0       | 192.168.2.93/24     | **Static (locked)**         |
+| wlan0      | —                   | Down                        |
+
+> ⚠ eth0 IP is a system constraint — see `local/docs/conventions.md → host-static-ip`.
+> Never change to DHCP or another address. VMs/containers may use other IPs.
 
 ## Listening Ports
 

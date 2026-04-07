@@ -10,7 +10,7 @@
 | Hostname         | `strandstr-pi`                         |
 | OS               | Ubuntu 25.10 (kernel 6.17.0-1008-raspi) |
 | Architecture     | `aarch64`     |
-| Primary IP       | `192.168.2.171`                         |
+| Primary IP       | `192.168.2.93` (static, locked)         |
 | Tailscale IP     | `not configured`                         |
 | SSH Port         | `22`                         |
 | Managed by       | tom@altow.de                   |
