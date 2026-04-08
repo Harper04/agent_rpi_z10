@@ -12,7 +12,7 @@
 | Architecture     | `aarch64`     |
 | Primary IP       | `192.168.2.32` (DHCP, may change)       |
 | Tailscale IP     | `not configured`                          |
-| Bridge IP (br0)  | `192.168.2.173`                           |
+| Bridge IP (br0)  | `192.168.2.32`                            |
 | SSH Port         | `22`                         |
 | Managed by       | tom@altow.de                   |
 | Purpose          | `TODO`                         |
