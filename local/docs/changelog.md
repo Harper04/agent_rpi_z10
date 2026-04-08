@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-04-08 — system-updater
+
+**Action:** Unattended security upgrade
+**Packages upgraded:**
+- `linux-image-raspi` 6.17.0-1010.10 → 6.17.0-1011.11 (kernel security update)
+**Auto-removed:** `linux-image-6.17.0-1008-raspi`, `linux-modules-6.17.0-1008-raspi` (old kernel)
+**Reboot required:** Yes — running kernel is still 6.17.0-1010, new kernel 6.17.0-1011 will activate on next reboot.
+
+---
+
 ## 2026-04-05 14:33 — orchestrator
 
 **Action:** Added ZeroTier domain for dashboard
