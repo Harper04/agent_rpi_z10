@@ -1,6 +1,0 @@
-{
-  "Name": "adguard.s85.zt.tiny-systems.eu",
-  "Type": "CNAME",
-  "TTL": 300,
-  "ResourceRecords": [{"Value": "s85.zt.tiny-systems.eu"}]
-}
