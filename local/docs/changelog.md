@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-09 — orchestrator
+
+**Action:** Activate DNS IP updater cron + add btrfs snapshot info to health check
+
+- Added cron job: `dns-ip-update.sh` runs every 15 minutes as a safety net
+  (primary trigger remains networkd-dispatcher on IP change)
+- Health check skill now reports latest btrfs snapshot name, count, and creation time
+- DNS updater dry-run confirmed: both br0 and ZeroTier records up to date
+
+---
+
 ## 2026-04-09 — system-updater
 
 **Action:** Unattended security upgrade

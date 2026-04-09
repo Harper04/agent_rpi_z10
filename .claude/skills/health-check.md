@@ -51,6 +51,21 @@ apt list --upgradable 2>/dev/null | tail -n +2 | wc -l
 echo "=== REBOOT REQUIRED ==="
 [ -f /var/run/reboot-required ] && echo "YES — reboot required" || echo "No"
 
+echo "=== BTRFS SNAPSHOTS ==="
+SNAP_DIR="${BTRFS_SNAPSHOT_DIR:-/.snapshots}"
+if findmnt -t btrfs / -n >/dev/null 2>&1 && [ -d "$SNAP_DIR" ]; then
+  latest=$(ls -1d "$SNAP_DIR"/root-????-??-?? 2>/dev/null | sort | tail -1)
+  count=$(ls -1d "$SNAP_DIR"/root-????-??-?? 2>/dev/null | wc -l)
+  if [ -n "$latest" ]; then
+    echo "Latest: ${latest##*/}  |  Total: $count"
+    sudo btrfs subvolume show "$latest" 2>/dev/null | grep -E 'Creation time|UUID' || true
+  else
+    echo "No snapshots found in $SNAP_DIR"
+  fi
+else
+  echo "Not a btrfs root or no snapshot directory"
+fi
+
 echo "=== SECURITY ==="
 last -5 --time-format iso
 grep "Failed password" /var/log/auth.log 2>/dev/null | tail -5 || true
