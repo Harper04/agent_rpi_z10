@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-09 — system-updater
+
+**Action:** Unattended security upgrade
+**Packages upgraded:**
+- `openssl` 3.5.3-1ubuntu3 → 3.5.3-1ubuntu3.3 (security)
+- `libssl3t64` 3.5.3-1ubuntu3 → 3.5.3-1ubuntu3.3 (security)
+- `openssl-provider-legacy` 3.5.3-1ubuntu3 → 3.5.3-1ubuntu3.3 (security)
+- `libgdk-pixbuf-2.0-0` 2.42.12+dfsg-5 → 5ubuntu0.1 (security)
+- `libgdk-pixbuf2.0-bin` 2.42.12+dfsg-5 → 5ubuntu0.1 (security)
+- `libgdk-pixbuf2.0-common` 2.42.12+dfsg-5 → 5ubuntu0.1 (security)
+**Services restarted:** ssh, systemd-networkd, systemd-resolved, zerotier-one, packagekit, others
+**Deferred restarts:** cron, libvirtd, logind, unattended-upgrades
+**Reboot required:** No (kernel unchanged)
+**Note:** HAOS VM running outdated qemu binary — reboot will refresh
+
+---
+
 ## 2026-04-08 — system-updater
 
 **Action:** Unattended security upgrade
