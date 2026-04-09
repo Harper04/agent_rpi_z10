@@ -7,6 +7,17 @@
 
 ## 2026-04-09 — orchestrator
 
+**Action:** Add ZeroTier access for AdGuard Home
+
+- Added `adguard.z10.zt.tiny-systems.eu` to Caddy site (alongside existing LAN domain)
+- Created CNAME DNS record `adguard.z10.zt.tiny-systems.eu → z10.zt.tiny-systems.eu`
+- TLS certificate provisioned via Let's Encrypt ACME DNS-01
+- Verified: HTTPS returns 302 (working)
+
+---
+
+## 2026-04-09 — orchestrator
+
 **Action:** Activate DNS IP updater cron + add btrfs snapshot info to health check
 
 - Added cron job: `dns-ip-update.sh` runs every 15 minutes as a safety net
