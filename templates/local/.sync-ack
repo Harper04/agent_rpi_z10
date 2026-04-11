@@ -1,0 +1,6 @@
+# Upstream Sync Acknowledgements — {{HOSTNAME}}
+#
+# Format: <hash>  # <ISO-date> — <reason>
+#
+# Add entries with: ./scripts/git/ack-upstream.sh <hash> "reason"
+# These commits were reviewed and intentionally not applied.
