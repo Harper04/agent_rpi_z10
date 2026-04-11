@@ -49,9 +49,60 @@ if [ "$UPSTREAM" = "$BASE" ]; then
   exit 0
 fi
 
+# --- Load acknowledgements ---
+ACK_FILE="$REPO_ROOT/local/.sync-ack"
+ACKED_HASHES=()
+if [ -f "$ACK_FILE" ]; then
+  while IFS= read -r line; do
+    # Skip comments and blank lines
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+    hash=$(echo "$line" | awk '{print $1}')
+    [ -n "$hash" ] && ACKED_HASHES+=("$hash")
+  done < "$ACK_FILE"
+fi
+
+# Collect all pending commits (short hashes)
+ALL_PENDING=()
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  short=$(echo "$line" | awk '{print $1}')
+  ALL_PENDING+=("$short")
+done < <(git --no-pager log --oneline "$BASE..$UPSTREAM")
+
+# Filter out acknowledged commits
+UNACKED=()
+ACKED_COUNT=0
+for entry in "${ALL_PENDING[@]}"; do
+  acked=false
+  for ack in "${ACKED_HASHES[@]}"; do
+    # Match if entry starts with ack hash or ack starts with entry (prefix match)
+    if [[ "$entry" == "${ack}"* || "${ack}" == "${entry}"* ]]; then
+      acked=true
+      (( ACKED_COUNT++ )) || true
+      break
+    fi
+  done
+  $acked || UNACKED+=("$entry")
+done
+
+# All commits acknowledged?
+if [ ${#UNACKED[@]} -eq 0 ]; then
+  if [ $ACKED_COUNT -gt 0 ]; then
+    echo "✅ Up to date (${ACKED_COUNT} commit(s) reviewed and acknowledged)."
+  else
+    echo "✅ Already up to date with upstream template."
+  fi
+  exit 0
+fi
+
 echo ""
-echo "📋 New commits from template:"
+echo "📋 New commits from template (${#UNACKED[@]} unreviewed):"
 git --no-pager log --oneline "$BASE..$UPSTREAM" | head -20
+
+if [ $ACKED_COUNT -gt 0 ]; then
+  echo "   ℹ️  ${ACKED_COUNT} acknowledged commit(s) hidden — see local/.sync-ack"
+fi
 
 echo ""
 echo "📁 Changed files:"
