@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-11 — orchestrator
+
+**Action:** Declarative crontab + config drift detection in health check
+
+- Created `scripts/cron/crontab.managed` as single source of truth for crontab
+- Created `scripts/cron/install-crontab.sh` to atomically apply/check/diff crontab
+- Health check now validates config drift for:
+  - Crontab (managed file vs actual)
+  - Caddy sites (expected sites present)
+  - networkd-dispatcher hook (50-dns-update installed)
+  - Netplan static IP (192.168.2.32 in config)
+  - Managed systemd units (caddy, adguardhome, uos-webrtc-fix)
+  - Cron freshness (recent logs for daily tasks)
+- Health check now notes that no swap is intentional (not flagged)
+
+---
+
 ## 2026-04-09 — orchestrator
 
 **Action:** Add ZeroTier access for AdGuard Home
