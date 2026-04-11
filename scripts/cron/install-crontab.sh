@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # install-crontab.sh — Atomically install the managed crontab from source of truth.
 #
+# Source of truth: local/crontab.managed (machine-specific, tracked in origin repo)
+# Seed template:  templates/local/crontab.managed (shared upstream)
+#
 # Usage:
 #   ./scripts/cron/install-crontab.sh              # install
 #   ./scripts/cron/install-crontab.sh --diff        # show diff without applying
@@ -9,7 +12,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-MANAGED_FILE="$REPO_ROOT/scripts/cron/crontab.managed"
+MANAGED_FILE="$REPO_ROOT/local/crontab.managed"
 
 if [[ ! -f "$MANAGED_FILE" ]]; then
   echo "❌ Source of truth not found: $MANAGED_FILE"

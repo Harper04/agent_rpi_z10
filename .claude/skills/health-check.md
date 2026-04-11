@@ -11,6 +11,10 @@ Run a full system health assessment and report results.
 ## Checks
 
 ```bash
+REPO_ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null || echo "$HOME/sysadmin-agent")"
+DRIFT_CONF="$REPO_ROOT/local/health-drift.conf"
+[ -f "$DRIFT_CONF" ] && source "$DRIFT_CONF"
+
 echo "=== IDENTITY ==="
 hostname -f && date -Is && uname -r
 
@@ -19,7 +23,7 @@ uptime
 
 echo "=== MEMORY ==="
 free -h
-# Note: no swap is intentional on this system — do not flag it.
+# If NO_SWAP_OK=true in health-drift.conf, no swap is intentional — do not flag it.
 
 echo "=== DISK ==="
 df -h --type=ext4 --type=btrfs --type=xfs --type=vfat 2>/dev/null || df -h
@@ -68,69 +72,86 @@ else
 fi
 
 echo "=== CONFIG DRIFT ==="
-REPO_ROOT="$(git -C /home/tomjaster/sysadmin-agent rev-parse --show-toplevel 2>/dev/null || echo /home/tomjaster/sysadmin-agent)"
 
 # Crontab: compare against managed source of truth
 echo "-- Crontab --"
-"$REPO_ROOT/scripts/cron/install-crontab.sh" --check 2>&1 || true
+if [ -x "$REPO_ROOT/scripts/cron/install-crontab.sh" ]; then
+  "$REPO_ROOT/scripts/cron/install-crontab.sh" --check 2>&1 || true
+else
+  echo "  ℹ️  install-crontab.sh not found — skipping"
+fi
 
-# Caddy sites: verify expected sites exist
+# Caddy sites: verify expected sites exist (from health-drift.conf)
 echo "-- Caddy sites --"
-EXPECTED_SITES="adguard default home-assistant unifi _auth"
-for site in $EXPECTED_SITES; do
-  f="/etc/caddy/sites/${site}.caddy"
-  if [ -f "$f" ]; then
-    echo "  ✅ $site.caddy"
-  else
-    echo "  ❌ MISSING: $site.caddy"
-  fi
-done
+if [ -n "${EXPECTED_CADDY_SITES:-}" ]; then
+  for site in $EXPECTED_CADDY_SITES; do
+    f="/etc/caddy/sites/${site}.caddy"
+    if [ -f "$f" ]; then
+      echo "  ✅ $site.caddy"
+    else
+      echo "  ❌ MISSING: $site.caddy"
+    fi
+  done
+else
+  echo "  ℹ️  No expected sites configured in health-drift.conf"
+fi
 
-# networkd-dispatcher: verify DNS hook is installed and executable
+# networkd-dispatcher hooks (from health-drift.conf)
 echo "-- networkd-dispatcher --"
-HOOK="/etc/networkd-dispatcher/routable.d/50-dns-update"
-if [ -x "$HOOK" ]; then
-  echo "  ✅ 50-dns-update installed and executable"
+if [ -n "${EXPECTED_DISPATCHER_HOOKS:-}" ]; then
+  for hook in $EXPECTED_DISPATCHER_HOOKS; do
+    if [ -x "$hook" ]; then
+      echo "  ✅ $(basename "$hook") installed and executable"
+    else
+      echo "  ❌ $(basename "$hook") missing or not executable"
+    fi
+  done
 else
-  echo "  ❌ 50-dns-update missing or not executable"
+  echo "  ℹ️  No expected hooks configured"
 fi
 
-# Netplan: verify static IP config exists
+# Netplan: verify static IP (from health-drift.conf)
 echo "-- Netplan --"
-if [ -f /etc/netplan/50-cloud-init.yaml ]; then
-  if sudo grep -q '192.168.2.32' /etc/netplan/50-cloud-init.yaml 2>/dev/null; then
-    echo "  ✅ Static IP 192.168.2.32 in netplan config"
+if [ -n "${EXPECTED_NETPLAN_IP:-}" ]; then
+  NP_FILE="${NETPLAN_FILE:-/etc/netplan/50-cloud-init.yaml}"
+  if [ -f "$NP_FILE" ]; then
+    if sudo grep -q "$EXPECTED_NETPLAN_IP" "$NP_FILE" 2>/dev/null; then
+      echo "  ✅ Static IP $EXPECTED_NETPLAN_IP in netplan config"
+    else
+      echo "  ⚠️  $NP_FILE exists but $EXPECTED_NETPLAN_IP not found"
+    fi
   else
-    echo "  ⚠️  /etc/netplan/50-cloud-init.yaml exists but 192.168.2.32 not found"
+    echo "  ❌ $NP_FILE missing"
   fi
 else
-  echo "  ❌ /etc/netplan/50-cloud-init.yaml missing"
+  echo "  ℹ️  No expected IP configured"
 fi
 
-# Systemd managed units: verify expected units are active
+# Systemd managed units (from health-drift.conf)
 echo "-- Managed systemd units --"
-EXPECTED_UNITS="caddy adguardhome uos-webrtc-fix"
-for unit in $EXPECTED_UNITS; do
-  status=$(systemctl is-active "$unit" 2>/dev/null || echo "missing")
-  if [ "$status" = "active" ]; then
-    echo "  ✅ $unit: active"
-  else
-    echo "  ⚠️  $unit: $status"
-  fi
-done
+if [ -n "${EXPECTED_SYSTEMD_UNITS:-}" ]; then
+  for unit in $EXPECTED_SYSTEMD_UNITS; do
+    status=$(systemctl is-active "$unit" 2>/dev/null || echo "missing")
+    if [ "$status" = "active" ]; then
+      echo "  ✅ $unit: active"
+    else
+      echo "  ⚠️  $unit: $status"
+    fi
+  done
+else
+  echo "  ℹ️  No expected units configured"
+fi
 
-# Cron last-run freshness: check that daily tasks produced recent logs
+# Cron last-run freshness
 echo "-- Cron freshness --"
 LOG_DIR="$REPO_ROOT/local/logs"
 YESTERDAY=$(date -d "yesterday" +%Y%m%d)
 TODAY=$(date +%Y%m%d)
-# Health check should have run today or yesterday
 if ls "$LOG_DIR"/cron-${TODAY}-06*.log "$LOG_DIR"/cron-${YESTERDAY}-06*.log 2>/dev/null | head -1 | grep -q .; then
   echo "  ✅ Health check log found (today or yesterday)"
 else
   echo "  ⚠️  No recent health check log — cron may not be running"
 fi
-# btrfs snapshot should be recent
 SNAP_LOG="$LOG_DIR/btrfs-snapshot.log"
 if [ -f "$SNAP_LOG" ]; then
   SNAP_AGE=$(( ( $(date +%s) - $(stat -c %Y "$SNAP_LOG") ) / 86400 ))
@@ -151,6 +172,6 @@ grep "Failed password" /var/log/auth.log 2>/dev/null | tail -5 || true
 ## Output
 
 Summarize as a structured report. Flag anything abnormal with ⚠️.
-No swap is intentional on this machine — do NOT flag it as an issue.
+If `NO_SWAP_OK=true` in health-drift.conf, do NOT flag missing swap as an issue.
 If any critical issue is found, recommend immediate action.
 If CONFIG DRIFT shows any ❌ or ⚠️, highlight it prominently and suggest remediation.
