@@ -8,7 +8,7 @@
 
 # --- Machine-specific data ---
 # local/ is tracked in machine repos (origin) but NEVER pushed upstream.
-# The upstream template .gitignore has "local/" here — machine repos remove it.
+# The upstream template .gitignore has "/local/" here — machine repos remove it.
 # !local/ is implicit (line removed, not negated) so local/ IS tracked.
 
 # --- Secrets (NEVER committed anywhere) ---
