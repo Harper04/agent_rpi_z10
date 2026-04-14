@@ -6,10 +6,10 @@
 #   origin   = this machine's repo (includes local/)
 # ============================================================
 
-# --- Machine-specific data ---
-# local/ is tracked in machine repos (origin) but NEVER pushed upstream.
-# The upstream template .gitignore has "/local/" here — machine repos remove it.
-# !local/ is implicit (line removed, not negated) so local/ IS tracked.
+# --- Machine-specific data (NEVER in template repo — belongs in origin/machine repo only) ---
+# local/ is Tier 3: machine-specific configs, docs, secrets. NEVER pushed upstream.
+# Leading slash anchors to repo root so templates/local/ is NOT blocked.
+/local/
 
 # --- Secrets (NEVER committed anywhere) ---
 local/.env
