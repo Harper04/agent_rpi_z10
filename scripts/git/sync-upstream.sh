@@ -127,6 +127,13 @@ fi
 echo ""
 echo "✅ Shared files synced."
 
+# --- Install/update git hooks ---
+INSTALL_HOOKS="$REPO_ROOT/scripts/git/install-hooks.sh"
+if [ -x "$INSTALL_HOOKS" ]; then
+  echo ""
+  bash "$INSTALL_HOOKS"
+fi
+
 # --- Sync template updates to local/ ---
 SYNC_TEMPLATES="$REPO_ROOT/scripts/git/sync-templates.sh"
 if [ -x "$SYNC_TEMPLATES" ]; then

@@ -420,6 +420,15 @@ fi
 find scripts/ -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
 chmod +x setup.sh
 
+# --- Install git hooks ---
+echo ""
+INSTALL_HOOKS="$SCRIPT_DIR/scripts/git/install-hooks.sh"
+if [ -x "$INSTALL_HOOKS" ]; then
+  bash "$INSTALL_HOOKS"
+else
+  echo "  ⚠️  scripts/git/install-hooks.sh not found — skipping hook install"
+fi
+
 # --- Install Claude Code Telegram plugin ---
 # The plugin must be installed (downloads/caches the MCP server code), but we
 # must NOT leave enabledPlugins in ~/.claude/settings.json — that would give

@@ -35,7 +35,8 @@
       "Bash(reboot)",
       "Bash(tailscale down)",
       "Bash(git push upstream main)",
-      "Bash(git push upstream master)"
+      "Bash(git push upstream master)",
+      "Bash(git push --no-verify *)"
     ]
   },
   "hooks": {
