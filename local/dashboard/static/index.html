@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/line-awesome@1.3.0/dist/line-awesome/css/line-awesome.min.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body x-data="dashboard()" x-init="init()">
+
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <i class="las la-cube"></i>
+        <div>
+          <h1 x-text="config.hostname || 'Dashboard'"></h1>
+          <span class="subtitle" x-text="config.subtitle || ''"></span>
+        </div>
+      </div>
+      <div class="health-pills" x-show="health">
+        <span class="pill" :class="health?.load?.['1m'] < 2 ? 'pill-ok' : 'pill-warn'">
+          <i class="las la-microchip"></i>
+          <span x-text="health?.load?.['1m']?.toFixed(2)"></span>
+        </span>
+        <span class="pill" :class="memPercent < 80 ? 'pill-ok' : 'pill-warn'">
+          <i class="las la-memory"></i>
+          <span x-text="formatBytes(health?.memory?.used)"></span>
+          /
+          <span x-text="formatBytes(health?.memory?.total)"></span>
+        </span>
+        <span class="pill" :class="diskPercent < 85 ? 'pill-ok' : 'pill-warn'">
+          <i class="las la-hdd"></i>
+          <span x-text="diskPercent + '%'"></span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- System Health -->
+    <section class="card" x-show="health">
+      <h2><i class="las la-heartbeat"></i> System</h2>
+      <div class="health-grid">
+        <div class="health-item">
+          <label>Uptime</label>
+          <span x-text="health?.uptime?.replace('up ', '')"></span>
+        </div>
+        <div class="health-item">
+          <label>Load</label>
+          <span x-text="`${health?.load?.['1m']} / ${health?.load?.['5m']} / ${health?.load?.['15m']}`"></span>
+        </div>
+        <div class="health-item">
+          <label>Memory</label>
+          <div class="bar-wrap">
+            <div class="bar" :class="memPercent > 80 ? 'bar-warn' : 'bar-ok'" :style="`width: ${memPercent}%`"></div>
+          </div>
+          <span class="bar-label" x-text="`${memPercent}%`"></span>
+        </div>
+        <div class="health-item">
+          <label>Disk /</label>
+          <div class="bar-wrap">
+            <div class="bar" :class="diskPercent > 85 ? 'bar-warn' : 'bar-ok'" :style="`width: ${diskPercent}%`"></div>
+          </div>
+          <span class="bar-label" x-text="`${diskPercent}%`"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section class="card">
+      <h2><i class="las la-globe"></i> Services</h2>
+      <div class="services-grid" x-show="services.length">
+        <template x-for="svc in services" :key="svc.name">
+          <a :href="svc.url" class="service-tile" target="_blank" rel="noopener">
+            <i :class="svc.icon" class="service-icon"></i>
+            <div class="service-info">
+              <span class="service-name" x-text="svc.name"></span>
+              <span class="service-desc" x-text="svc.description"></span>
+            </div>
+            <i class="las la-external-link-alt service-arrow"></i>
+          </a>
+        </template>
+      </div>
+      <div class="loading" x-show="!services.length"><i class="las la-spinner la-spin"></i></div>
+    </section>
+
+    <!-- Agent Control -->
+    <section class="card">
+      <h2><i class="las la-robot"></i> Agent</h2>
+      <div class="agent-row">
+        <div class="agent-status">
+          <span class="status-dot" :class="agentStatus === 'active' ? 'dot-ok' : 'dot-err'"></span>
+          <span>sysadmin-agent.service</span>
+          <span class="badge" x-text="agentStatus"></span>
+        </div>
+        <button class="btn btn-warn" @click="restartAgent()" :disabled="agentRestarting">
+          <i class="las" :class="agentRestarting ? 'la-spinner la-spin' : 'la-redo-alt'"></i>
+          <span x-text="agentRestarting ? 'Restarting...' : 'Restart'"></span>
+        </button>
+      </div>
+      <p class="agent-note" x-show="agentMsg" x-text="agentMsg"></p>
+    </section>
+
+    <!-- DNS Records (shown only if API returns data) -->
+    <section class="card" x-show="dnsLoading || !dnsError || Object.keys(dnsTree).length">
+      <h2><i class="las la-sitemap"></i> DNS Records</h2>
+      <div x-show="dnsLoading" class="loading"><i class="las la-spinner la-spin"></i> Loading Route53...</div>
+      <div x-show="dnsError" class="error-msg" x-text="dnsError"></div>
+      <div x-show="!dnsLoading && !dnsError">
+        <template x-for="(zone, zoneName) in dnsTree" :key="zoneName">
+          <div class="dns-zone">
+            <button class="zone-header" @click="toggleZone(zoneName)">
+              <i class="las" :class="openZones[zoneName] ? 'la-angle-down' : 'la-angle-right'"></i>
+              <i class="las la-cloud"></i>
+              <span class="zone-name" x-text="zoneName"></span>
+              <span class="badge" x-text="zone.recordCount + ' records'"></span>
+            </button>
+            <div class="zone-records" x-show="openZones[zoneName]" x-transition>
+              <template x-for="group in groupRecords(zone.records, zoneName)" :key="group.label">
+                <div class="record-group">
+                  <div class="record-group-header" @click="group.open = !group.open">
+                    <i class="las" :class="group.open ? 'la-angle-down' : 'la-angle-right'"></i>
+                    <span class="record-host" x-text="group.label"></span>
+                    <span class="record-count" x-text="group.records.length"></span>
+                  </div>
+                  <div class="record-entries" x-show="group.open" x-transition>
+                    <template x-for="rec in group.records" :key="rec.name + rec.type">
+                      <div class="record-entry">
+                        <div class="rec-line1">
+                          <span class="rec-type" :class="'rec-' + rec.type.toLowerCase()" x-text="rec.type"></span>
+                          <span class="rec-name" x-text="rec.name"></span>
+                          <span class="rec-ttl" x-show="rec.ttl" x-text="rec.ttl + 's'"></span>
+                        </div>
+                        <div class="rec-line2">
+                          <template x-for="v in rec.values" :key="v">
+                            <span class="rec-value" x-text="v"></span>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- ZeroTier (shown only if configured) -->
+    <section class="card" x-show="ztLoading || !ztError || ztMembers.length">
+      <h2><i class="las la-network-wired"></i> ZeroTier Network</h2>
+      <div x-show="ztLoading" class="loading"><i class="las la-spinner la-spin"></i> Loading...</div>
+      <div x-show="ztError" class="error-msg" x-text="ztError"></div>
+      <div x-show="!ztLoading && !ztError && ztMembers.length" class="zt-grid">
+        <template x-for="m in ztMembers" :key="m.nodeId">
+          <div class="zt-member" :class="m.online ? 'zt-online' : 'zt-offline'">
+            <div class="zt-member-header">
+              <span class="status-dot" :class="m.online ? 'dot-ok' : 'dot-err'"></span>
+              <span class="zt-name" x-text="m.name"></span>
+              <span class="badge badge-sm" x-text="m.online ? 'online' : 'offline'"></span>
+            </div>
+            <div class="zt-ips">
+              <template x-for="ip in m.ips" :key="ip">
+                <code class="zt-ip" x-text="ip"></code>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span x-text="(config.hostname || '') + ' dashboard'"></span>
+    <span x-text="'Last refresh: ' + lastRefresh"></span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+  <script src="/app.js"></script>
+</body>
+</html>
