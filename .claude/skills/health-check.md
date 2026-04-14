@@ -44,6 +44,42 @@ ss -tlnp
 echo "=== DOCKER (if present) ==="
 docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || echo "Docker not installed"
 
+echo "=== PODMAN (root + rootless) ==="
+# Root podman
+if command -v podman >/dev/null 2>&1; then
+  echo "-- root --"
+  sudo podman ps --all --format "table {{.Names}}\t{{.Status}}" 2>/dev/null \
+    | sed -E 's/^/  /' \
+    || echo "  (none)"
+  # Rootless users: explicit list from health-drift.conf, plus auto-detect
+  # any user home with a podman storage directory so we don't silently miss one.
+  ROOTLESS_USERS="${ROOTLESS_PODMAN_USERS:-}"
+  for home in /home/*; do
+    u="$(basename "$home")"
+    if [ -d "$home/.local/share/containers/storage" ]; then
+      case " $ROOTLESS_USERS " in *" $u "*) ;; *) ROOTLESS_USERS="$ROOTLESS_USERS $u" ;; esac
+    fi
+  done
+  for u in $ROOTLESS_USERS; do
+    id "$u" >/dev/null 2>&1 || continue
+    u_home=$(getent passwd "$u" | cut -d: -f6)
+    u_uid=$(id -u "$u")
+    [ -n "$u_home" ] || continue
+    echo "-- rootless: $u --"
+    # HOME must point at the target user's home so rootless podman finds
+    # its storage in $HOME/.local/share/containers. We also cd to / because
+    # podman refuses to run when the target user can't read the caller's cwd
+    # (sudo-rs disallows --chdir by policy), which would otherwise silently
+    # produce an empty container list.
+    ( cd / && sudo -H -u "$u" HOME="$u_home" XDG_RUNTIME_DIR="/run/user/$u_uid" \
+        podman ps --all --format "table {{.Names}}\t{{.Status}}" 2>/dev/null ) \
+      | sed -E 's/^/  /' \
+      || echo "  (none)"
+  done
+else
+  echo "Podman not installed"
+fi
+
 echo "=== K3S (if present) ==="
 k3s kubectl get pods -A --no-headers 2>/dev/null | awk '{print $1, $2, $4}' || echo "K3s not installed"
 
@@ -162,6 +198,30 @@ if [ -f "$SNAP_LOG" ]; then
   fi
 else
   echo "  ⚠️  No btrfs-snapshot.log found"
+fi
+
+echo "=== CADDY ENDPOINTS ==="
+# Caddy rejects unknown SNI with a TLS alert, so a naive `curl https://localhost`
+# produces a false "connection refused" reading. Probe real vhosts via --resolve.
+if systemctl is-active --quiet caddy 2>/dev/null; then
+  if ss -tln | awk '{print $4}' | grep -Eq ':(80|443)$'; then
+    echo "  ✅ caddy active, listening on :80/:443"
+  else
+    echo "  ⚠️  caddy active but not listening on :80/:443"
+  fi
+  for host in ${CADDY_PROBE_HOSTS:-}; do
+    code=$(curl -sk --resolve "${host}:443:127.0.0.1" -o /dev/null \
+             -w "%{http_code}" --max-time 5 "https://${host}/" || echo "000")
+    if [ "$code" = "000" ]; then
+      echo "  ⚠️  $host → no response"
+    else
+      echo "  ✅ $host → HTTP $code"
+    fi
+  done
+  [ -z "${CADDY_PROBE_HOSTS:-}" ] && \
+    echo "  ℹ️  CADDY_PROBE_HOSTS empty — set in health-drift.conf to probe vhosts"
+else
+  echo "  Caddy not active (or not installed)"
 fi
 
 echo "=== SECURITY ==="
