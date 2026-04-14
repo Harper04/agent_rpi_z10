@@ -1,15 +1,15 @@
 # ============================================================
-# UPSTREAM TEMPLATE .gitignore
+# .gitignore — shared by upstream template AND machine repos
 # ============================================================
-# Git remotes:
-#   upstream = shared template repo (agents, skills, scripts)
-#   origin   = this machine's repo (includes local/)
+# This file is IDENTICAL in both repos. local/ is NOT ignored here.
+# A pre-push hook prevents local/ from reaching upstream instead.
+# See: scripts/hooks/pre-push-no-local-upstream.sh
 # ============================================================
 
 # --- Machine-specific data ---
-# local/ is tracked in machine repos (origin) but NEVER pushed upstream.
-# The upstream template .gitignore has "/local/" here — machine repos remove it.
-# !local/ is implicit (line removed, not negated) so local/ IS tracked.
+# local/ is tracked normally. Secrets and runtime files below are excluded.
+# Protection against leaking local/ to upstream is enforced at push time
+# (pre-push hook + GitHub Actions CI), not via .gitignore.
 
 # --- Secrets (NEVER committed anywhere) ---
 local/.env

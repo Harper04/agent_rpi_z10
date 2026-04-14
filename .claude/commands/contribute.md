@@ -63,6 +63,11 @@ Group related changes into logical PRs. Examples:
 - Secrets or tokens (run the secret scanner)
 - Changes that only make sense for this machine's setup
 
+> **Safety net:** The pre-push hook (`scripts/hooks/pre-push-no-local-upstream.sh`)
+> blocks any push to upstream containing `local/` files. If the hook rejects a push,
+> review the branch with `git diff --name-only upstream/main..HEAD -- local/` and
+> remove local/ files before retrying.
+
 ## Step 3 — Review each candidate
 
 For each group, show the operator:

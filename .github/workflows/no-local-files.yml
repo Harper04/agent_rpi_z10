@@ -1,0 +1,24 @@
+name: Block local/ files
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check-no-local:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure no local/ files in tree
+        run: |
+          if git ls-tree -r --name-only HEAD | grep -q '^local/'; then
+            echo "::error::local/ files detected in upstream repo!"
+            echo ""
+            echo "These machine-specific files must not be pushed upstream:"
+            git ls-tree -r --name-only HEAD | grep '^local/'
+            echo ""
+            echo "Remove them: git rm -r --cached local/ && git commit"
+            exit 1
+          fi
+          echo "Clean — no local/ files in tree."

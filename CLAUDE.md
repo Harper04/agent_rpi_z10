@@ -99,6 +99,14 @@ git push -u origin main
 - Template updates → `/sync` merges shared files + syncs `templates/local/` → `local/`.
 - Promotable local work → sanitize and put in `docs/examples/` or `templates/local/`.
 
+**Protection against local/ leaking upstream:**
+- `.gitignore` is **identical** in both repos — it does NOT ignore `local/`.
+- A **pre-push hook** (`scripts/hooks/pre-push-no-local-upstream.sh`) blocks any push
+  to the `upstream` remote that contains `local/` paths.
+- `propose-upstream.sh` and `/contribute` also filter out `local/` files.
+- A **GitHub Actions check** on the upstream repo rejects PRs containing `local/` files.
+- The hook is installed automatically by `setup.sh` and `/sync`.
+
 ## Core Rules
 
 1. **Document everything.** After every change, update the relevant file in `local/docs/`.

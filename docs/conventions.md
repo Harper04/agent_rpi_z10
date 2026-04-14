@@ -81,3 +81,15 @@
 **Reason:** Enables quick rollback. Agents check for `.bak.*` files when troubleshooting.
 **Added:** 2026-04-04
 **Owner:** orchestrator
+
+## no-local-upstream
+
+**Scope:** Any agent or skill pushing to the `upstream` remote
+**Convention:** NEVER push `local/` files to the upstream remote. The pre-push hook
+(`scripts/hooks/pre-push-no-local-upstream.sh`) blocks this automatically. When
+proposing changes upstream, use `/contribute` or `propose-upstream.sh` which filter
+out `local/` paths. Never bypass the pre-push hook with `--no-verify`.
+**Reason:** `local/` contains machine-specific data (hostnames, IPs, configs). Pushing
+it upstream leaks sensitive data and causes merge conflicts on every other machine.
+**Added:** 2026-04-14
+**Owner:** orchestrator
