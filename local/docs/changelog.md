@@ -291,3 +291,20 @@
 **Reason:** Initial setup of sysadmin-agent for this machine
 **Files changed:** All initial files created
 **Verification:** Repository structure validated
+
+---
+## 2026-04-14T08:55:00Z — Unified .gitignore with push-time protection (Proposal C)
+
+**Action:** Replaced dual-.gitignore approach with single shared .gitignore + pre-push hook
+**Reason:** Upstream and machine repos had different .gitignore rules for `local/`, causing merge conflicts and data loss on every `/sync`. Proposal C: stop ignoring `local/` in .gitignore, protect at push time instead.
+**Files changed (upstream PR #60):**
+- `.gitignore` — removed `/local/` rule, unified for both repos
+- `scripts/hooks/pre-push-no-local-upstream.sh` — blocks local/ in upstream pushes
+- `scripts/git/install-hooks.sh` — idempotent hook installer via symlinks
+- `scripts/git/sync-upstream.sh` — auto-installs hooks after merge
+- `setup.sh` — installs hooks during first-time setup
+- `.claude/settings.json` — deny `--no-verify`
+- `CLAUDE.md` + `docs/conventions.md` — documented new model
+- `.claude/commands/contribute.md` — safety net note
+**Verification:** Hook blocks `git push upstream main`, allows `git push origin main`. .gitignore identical between upstream and machine.
+**Note:** GitHub Actions CI workflow not pushed (PAT lacks workflow scope) — add via web UI.
